@@ -1,0 +1,12 @@
+table {
+  border-collapse: separate;
+}
+
+thead {
+  border-collapse: separate;
+}
+
+.apexcharts-tooltip {
+  background: #f3f3f3;
+  color: #000;
+}
