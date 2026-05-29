@@ -122,7 +122,7 @@ export const CreateParams = () => {
         );
         setValue('integracaoPorEmpresa', dados?.integracao_por_empresa);
         setValue('multiplasTabelaPreco', dados?.multiplas_tabela_preco);
-        setValue('atendimentoPorRegiao', dados?.atendimento_por_regiao);
+        setValue('atendimentoPorRegiao', String(!!dados?.atendimento_por_regiao));
         setValue('utilizaOpme', String(!!dados?.utiliza_opme));
       });
   }, [params, setValue]);
@@ -140,7 +140,7 @@ export const CreateParams = () => {
       produto_rentabilidade_baixa: Number(data?.produtoRentabilidadeBaixa),
       integracao_por_empresa: data?.integracaoPorEmpresa,
       multiplas_tabela_preco: data?.multiplasTabelaPreco,
-      atendimento_por_regiao: data?.atendimentoPorRegiao,
+      atendimento_por_regiao: String(data?.atendimentoPorRegiao) === 'true',
       utiliza_opme: String(data?.utilizaOpme) === 'true',
       // excluido: false,
       // });
