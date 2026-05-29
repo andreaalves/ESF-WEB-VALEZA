@@ -7,10 +7,12 @@
     "@emotion/react": "^11",
     "@emotion/styled": "^11",
     "@hookform/resolvers": "^2.8.0",
+    "@types/leaflet": "^1.9.21",
     "@types/luxon": "^2.0.4",
     "apexcharts": "^3.32.0",
     "axios": "^0.21.1",
     "framer-motion": "^4",
+    "leaflet": "^1.9.4",
     "luxon": "^2.0.2",
     "python3": "^0.0.1",
     "react": "^17.0.2",
@@ -29,7 +31,6 @@
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "@chakra-ui/core": "^0.8.0",
     "@testing-library/jest-dom": "^5.11.4",
     "@testing-library/react": "^11.1.0",
     "@testing-library/user-event": "^12.1.10",
@@ -43,8 +44,8 @@
     "typescript": "^4.9.5"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "CI= react-scripts build",
+    "start": "NODE_OPTIONS=--openssl-legacy-provider react-scripts start",
+    "build": "CI= NODE_OPTIONS=--openssl-legacy-provider react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

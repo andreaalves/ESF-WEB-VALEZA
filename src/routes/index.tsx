@@ -29,6 +29,13 @@ import { CreateLinkClient } from '../pages/CreateLinkClient';
 import { CreateParams } from '../pages/CreateParams';
 import ListParams from '../pages/ListParams';
 import { Dashboard } from '../pages/Dashboard';
+import ListBudget from '../pages/ListBudget';
+import ListItensBudget from '../pages/ListItensBudget';
+import SurgicalMap from '../pages/SurgicalMap';
+import AgendamentoDetail from '../pages/AgendamentoDetail';
+import RastreamentoEntrega from '../pages/RastreamentoEntrega';
+import Apontamento from '../pages/Apontamento';
+import Entregas from '../pages/Entregas';
 
 export const Routes = () => {
   return (
@@ -240,6 +247,14 @@ export const Routes = () => {
         />
 
         <Route exact path="/dashboard" component={Dashboard} isPrivate />
+        <Route exact path="/mapa-cirurgico" component={SurgicalMap} isPrivate />
+        <Route exact path="/listar/orcamento" component={ListBudget} isPrivate />
+        <Route exact path="/listar/orcamento/:id" component={ListItensBudget} isPrivate />
+
+        <Route exact path="/agendamento/detalhe" component={AgendamentoDetail} isPrivate />
+        <Route exact path="/rastreamento" component={RastreamentoEntrega} isPrivate />
+        <Route exact path="/apontamento" component={Apontamento} isPrivate />
+        <Route exact path="/listar/entregas" component={Entregas} isPrivate />
 
         <Route exact path="/teste" component={PagesTest} isPrivate />
       </Switch>

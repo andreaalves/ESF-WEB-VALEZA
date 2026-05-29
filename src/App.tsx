@@ -2,6 +2,7 @@ import { Routes } from "./routes";
 import { ChakraProvider, CSSReset } from "@chakra-ui/react";
 import { theme } from "./styles/theme";
 import { AuthProvider } from "./context/AuthContext";
+import { ParametrizacaoProvider } from "./context/ParametrizacaoContext";
 import "./styles/style.css";
 // import "./estilo.css";
 
@@ -11,7 +12,9 @@ export function App() {
       <ChakraProvider theme={theme}>
         <CSSReset />
         <AuthProvider>
-          <Routes />
+          <ParametrizacaoProvider>
+            <Routes />
+          </ParametrizacaoProvider>
         </AuthProvider>
       </ChakraProvider>
     </>
