@@ -1,6 +1,6 @@
 import { Button, Flex, Text, Image } from '@chakra-ui/react';
 import { useAuth } from '../../context/AuthContext';
-import logo from '../../assets/logoLaranja.jpeg';
+import logo from '../../assets/logo.png';
 
 export const Header = () => {
   const { signOut, user } = useAuth();

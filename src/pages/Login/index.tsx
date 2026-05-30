@@ -13,7 +13,7 @@ import {
   Box,
 } from '@chakra-ui/react';
 import { useAuth } from '../../context/AuthContext';
-import logo from '../../assets/logoLaranja.jpeg';
+import logo from '../../assets/logo.png';
 
 type IData = {
   email: string;
