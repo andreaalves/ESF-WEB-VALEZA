@@ -1,6 +1,6 @@
 import { Button, Flex, Text, Image } from '@chakra-ui/react';
 import { useAuth } from '../../context/AuthContext';
-import logo from '../../assets/logo.png';
+import logo from '../../assets/logo-arvore.png';
 
 export const Header = () => {
   const { signOut, user } = useAuth();
@@ -29,11 +29,10 @@ export const Header = () => {
         >
           <Image
             mr="2"
-            borderRadius="full"
-            boxSize="40px"
+            boxSize="48px"
             src={logo}
             alt="Logo"
-            objectFit="cover"
+            objectFit="contain"
           />
           <Text fontSize="2xl" fontWeight="bold">
             Essencial

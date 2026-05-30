@@ -13,7 +13,7 @@ import {
   Box,
 } from '@chakra-ui/react';
 import { useAuth } from '../../context/AuthContext';
-import logo from '../../assets/logo.png';
+import logo from '../../assets/logo-arvore.png';
 
 type IData = {
   email: string;
@@ -61,11 +61,10 @@ export const Login = () => {
           <Box mb="4">
             <Image
               mx="auto"
-              borderRadius="full"
               boxSize="100px"
               src={logo}
               alt="Logo"
-              objectFit="cover"
+              objectFit="contain"
             />
           </Box>
           <Text mb="4" fontSize="2xl" fontWeight="bold" align="center">
