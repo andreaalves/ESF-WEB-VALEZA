@@ -1,16 +1,16 @@
 // import { useContext } from "react";
 import {
-  Flex,
-  Box,
-  Heading,
-  Button,
-  VStack,
-  SimpleGrid,
-  Divider,
-  ButtonGroup,
+  Flex as FlexBase,
+  Box as BoxBase,
+  Heading as HeadingBase,
+  Button as ButtonBase,
+  VStack as VStackBase,
+  SimpleGrid as SimpleGridBase,
+  Divider as DividerBase,
+  ButtonGroup as ButtonGroupBase,
   useToast,
-  Text,
-  Image,
+  Text as TextBase,
+  Image as ImageBase,
 } from '@chakra-ui/react';
 import { Header } from '../../components/Header';
 import { useForm } from 'react-hook-form';
@@ -27,6 +27,19 @@ import { SiderbarResponsive } from '../../components/SiderbarResponsive';
 import { Wapper } from '../../components/Wapper';
 import { useAuth } from '../../context/AuthContext';
 import { useParametrizacao } from '../../context/ParametrizacaoContext';
+
+// Chakra UI v1 + TS strict estoura TS2590 ("union type too complex") quando
+// uma página mistura muitos componentes. Casting para any contorna o limite.
+const Flex = FlexBase as any;
+const Box = BoxBase as any;
+const Heading = HeadingBase as any;
+const Button = ButtonBase as any;
+const VStack = VStackBase as any;
+const SimpleGrid = SimpleGridBase as any;
+const Divider = DividerBase as any;
+const ButtonGroup = ButtonGroupBase as any;
+const Text = TextBase as any;
+const Image = ImageBase as any;
 
 type IParams = {
   id: string;
@@ -81,7 +94,15 @@ export const CreateParams = () => {
   const history = useHistory();
   const { recarregar } = useParametrizacao();
   const [tipoPedido, setTipoPedido] = useState<TipoPedido[]>([]);
+  const [utilizaOpme, setUtilizaOpme] = useState(false);
   const [logo, setLogo] = useState<Buffer | undefined>();
+
+  // Agendamento cirúrgico só existe quando a empresa usa OPME. Ele não é um
+  // registro em tipo_pedido — o app (ESF-APP-VALEZA, tab6) o adiciona à lista
+  // quando utiliza_opme = true. Replicamos o mesmo comportamento aqui.
+  const tiposPedidoExibidos: TipoPedido[] = utilizaOpme
+    ? [...tipoPedido, { id: 'agendamento', descricao: 'AGENDAMENTO' }]
+    : tipoPedido;
 
   useEffect(() => {
     if (!params.id) return;
@@ -124,6 +145,7 @@ export const CreateParams = () => {
         setValue('multiplasTabelaPreco', dados?.multiplas_tabela_preco);
         setValue('atendimentoPorRegiao', String(!!dados?.atendimento_por_regiao));
         setValue('utilizaOpme', String(!!dados?.utiliza_opme));
+        setUtilizaOpme(!!dados?.utiliza_opme);
       });
   }, [params, setValue]);
 
@@ -315,8 +337,8 @@ export const CreateParams = () => {
                       Tipos de pedido:
                     </Text>
                     <Box borderRadius="lg" p={4} bg={'gray.700'}>
-                      {tipoPedido.length > 0 ? (
-                        tipoPedido.map((item, index) => (
+                      {tiposPedidoExibidos.length > 0 ? (
+                        tiposPedidoExibidos.map((item, index) => (
                           <Text
                             as="p"
                             key={item.id || `tipo-pedido-${index}`}
