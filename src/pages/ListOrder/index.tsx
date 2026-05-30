@@ -45,11 +45,15 @@ export default function ListOrder() {
   const [orderFilter, setOrderFilter] = useState<any[]>([]);
   const [showFilter, setShowFilter] = useState(-1);
   const [params, setParams] = useState<any[]>([]);
+  const [reload, setReload] = useState(0);
 
   const history = useHistory();
   const { user } = useAuth();
 
   const toast = useToast();
+
+  // Só gerentes (qualquer variação: regional, nacional, etc.) podem aprovar.
+  const isGerente = !!user?.role?.startsWith('ROLE_MANAGER');
 
   useEffect(() => {
     async function getParams() {
@@ -85,7 +89,7 @@ export default function ListOrder() {
       setIsLoading(false);
     }
     getPedidos();
-  }, [orders.length, user.empresa.id, setValue]);
+  }, [orders.length, user.empresa.id, setValue, reload]);
 
   function showModal(index: number) {
     setShowIndex(index);
@@ -169,10 +173,34 @@ export default function ListOrder() {
     setShowFilter(0);
   }
 
+  async function handleApprove(id: string) {
+    try {
+      await api.patch(`/api-essencial/v1/pedidos/update-status/${id}`);
+      toast({
+        title: 'PEDIDO APROVADO',
+        description: 'O pedido foi liberado e será integrado ao ERP.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      setReload((r) => r + 1);
+    } catch (error) {
+      toast({
+        title: 'ERRO AO APROVAR',
+        description: 'Não foi possível aprovar o pedido. Tente novamente.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  }
+
   const column = getColumn(
     () => console.log('delted'),
     '/listar/pedido',
-    showModal
+    showModal,
+    handleApprove,
+    isGerente
   );
 
   return (

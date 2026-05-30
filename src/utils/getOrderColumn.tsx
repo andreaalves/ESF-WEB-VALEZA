@@ -5,7 +5,9 @@ import { DateTime } from 'luxon';
 export function getColumn(
   deleteFunction: (e: any, id: string) => void,
   editPath: string,
-  showModalFuntion: (index: number) => void
+  showModalFuntion: (index: number) => void,
+  approveFunction: (id: string) => void,
+  isGerente: boolean
 ) {
   const columns = [
     {
@@ -75,6 +77,23 @@ export function getColumn(
                 icon={<FiIcons.FiInfo size={18} color="#eeeef2" />}
               />
             </ChakraLink>
+            {isGerente && row.original.situacao === 'EM_ANALISE' && (
+              <ChakraLink
+                onClick={() => approveFunction(row.original.pedido_id)}
+              >
+                <IconButton
+                  size="sm"
+                  aria-label="Aprovar pedido"
+                  title="Aprovar pedido"
+                  colorScheme="green"
+                  bg="green.500"
+                  _hover={{
+                    bg: 'green.700',
+                  }}
+                  icon={<FiIcons.FiCheckCircle size={18} color="#eeeef2" />}
+                />
+              </ChakraLink>
+            )}
             {/* <ChakraLink
               onClick={(e) => {
                 deleteFunction(e, row.original.id);
