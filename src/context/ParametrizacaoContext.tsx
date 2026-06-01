@@ -4,12 +4,12 @@ import { useAuth } from './AuthContext';
 
 interface ParametrizacaoContextData {
   utilizaOpme: boolean;
-  recarregar: () => void;
+  recarregar: () => Promise<void>;
 }
 
 const ParametrizacaoContext = createContext<ParametrizacaoContextData>({
   utilizaOpme: false,
-  recarregar: () => {},
+  recarregar: async () => {},
 });
 
 export const ParametrizacaoProvider: React.FC = ({ children }) => {
@@ -33,6 +33,14 @@ export const ParametrizacaoProvider: React.FC = ({ children }) => {
 
   useEffect(() => {
     carregar();
+  }, [carregar]);
+
+  // Re-busca quando a janela/aba volta ao foco, pra refletir mudanças de
+  // parametrização (ex.: utiliza_opme → menu Mapa Cirúrgico) sem re-login.
+  useEffect(() => {
+    const aoFocar = () => carregar();
+    window.addEventListener('focus', aoFocar);
+    return () => window.removeEventListener('focus', aoFocar);
   }, [carregar]);
 
   return (

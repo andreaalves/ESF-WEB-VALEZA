@@ -190,7 +190,9 @@ export const CreateParams = () => {
           duration: 3000,
           isClosable: true,
         });
-        recarregar();
+        // Aguarda o recarregar pra atualizar o cache (ex.: menu Mapa
+        // Cirúrgico via utiliza_opme) sem precisar sair e logar de novo.
+        await recarregar();
         history.push('/listar/parametrizacao');
       } catch (error) {
         if (error) {
