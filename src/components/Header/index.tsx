@@ -34,9 +34,15 @@ export const Header = () => {
             alt="Logo"
             objectFit="contain"
           />
-          <Text fontSize="2xl" fontWeight="bold">
+          <Text fontFamily="kallisto" fontSize="2xl" fontWeight="bold">
             Essencial
-            <Text as="span" fontSize="sm" ml="2" color="orange.200">
+            <Text
+              as="span"
+              fontFamily="kallisto"
+              fontSize="sm"
+              ml="2"
+              color="orange.200"
+            >
               Sales Force
             </Text>
           </Text>

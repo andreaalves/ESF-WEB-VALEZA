@@ -1,8 +1,13 @@
 import { extendTheme } from '@chakra-ui/react';
+import KallistoBold from '../assets/fonts/Kallisto-Bold.otf';
 
 export const theme = extendTheme({
   initialColorMode: 'dark',
   useSystemColorMode: false,
+
+  fonts: {
+    kallisto: 'Kallisto, sans-serif',
+  },
 
   colors: {
     gray: {
@@ -30,6 +35,13 @@ export const theme = extendTheme({
   },
   styles: {
     global: {
+      '@font-face': {
+        fontFamily: 'Kallisto',
+        src: `url(${KallistoBold}) format('opentype')`,
+        fontWeight: 'bold',
+        fontStyle: 'normal',
+        fontDisplay: 'swap',
+      },
       'body, html': {
         bg: 'gray.700',
         color: 'gray.50',
