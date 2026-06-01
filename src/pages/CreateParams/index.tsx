@@ -166,7 +166,11 @@ export const CreateParams = () => {
       produto_rentabilidade_alta: Number(data?.produtoRentabilidadeAlta),
       produto_rentabilidade_media: Number(data?.produtoRentabilidadeMedia),
       produto_rentabilidade_baixa: Number(data?.produtoRentabilidadeBaixa),
-      integracao_por_empresa: String(data?.integracaoPorEmpresa) === 'true',
+      // A API trata integracao_por_empresa de forma diferente dos demais:
+      // ela compara `== "true"` (string), então este campo PRECISA ir como
+      // string "true"/"false" (o value do select). Os outros booleanos a API
+      // compara `== false`, então vão como boolean mesmo.
+      integracao_por_empresa: data?.integracaoPorEmpresa,
       multiplas_tabela_preco: String(data?.multiplasTabelaPreco) === 'true',
       atendimento_por_regiao: String(data?.atendimentoPorRegiao) === 'true',
       utiliza_opme: String(data?.utilizaOpme) === 'true',
