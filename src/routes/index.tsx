@@ -27,6 +27,9 @@ import Route from './Route';
 import ListItensOrder from '../pages/ListItensOrder';
 import { CreateLinkClient } from '../pages/CreateLinkClient';
 import { CreateParams } from '../pages/CreateParams';
+import { CreateMeta } from '../pages/CreateMeta';
+import { PainelMetas } from '../pages/PainelMetas';
+import ListMetas from '../pages/ListMetas';
 import ListParams from '../pages/ListParams';
 import { Dashboard } from '../pages/Dashboard';
 import ListBudget from '../pages/ListBudget';
@@ -87,6 +90,12 @@ export const Routes = () => {
         />
 
         <Route exact path="/listar/vendedor" component={ListUser} isPrivate />
+
+        <Route exact path="/listar/meta" component={ListMetas} isPrivate />
+        <Route exact path="/cadastro/meta" component={CreateMeta} isPrivate />
+        <Route exact path="/cadastro/meta/:id" component={CreateMeta} isPrivate />
+
+        <Route exact path="/painel/metas" component={PainelMetas} isPrivate />
 
         <Route
           exact

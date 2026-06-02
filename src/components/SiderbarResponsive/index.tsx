@@ -11,6 +11,7 @@ import {
 } from 'react-icons/hi';
 import { IoSettingsOutline } from 'react-icons/io5';
 import { RiMoneyDollarCircleLine } from 'react-icons/ri';
+import { FiTarget, FiBarChart2 } from 'react-icons/fi';
 
 import { SidebarItem } from '../SidebarItem';
 import { useParametrizacao } from '../../context/ParametrizacaoContext';
@@ -54,6 +55,8 @@ export const SiderbarResponsive = () => {
         <SidebarItem name="Clientes" nav={navSize} icon={HiOutlineUserGroup} path="/listar/cliente" />
         <NavDivider w={navSize === 'large' ? '30px' : '220px'} transitionDuration="0.42s" ml={4} />
         <SidebarItem name="Vendedores" nav={navSize} icon={HiOutlineUserAdd} path="/listar/vendedor" />
+        <SidebarItem name="Metas" nav={navSize} icon={FiTarget} path="/listar/meta" />
+        <SidebarItem name="Painel de Metas" nav={navSize} icon={FiBarChart2} path="/painel/metas" />
         {utilizaOpme && (
           <SidebarItem name="Mapa Cirúrgico" nav={navSize} icon={HiOutlineLocationMarker} path="/mapa-cirurgico" />
         )}

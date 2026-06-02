@@ -1,6 +1,17 @@
 import * as FiIcons from 'react-icons/fi';
-import { IconButton, Flex, HStack, Link as ChakraLink } from '@chakra-ui/react';
+import {
+  IconButton as IconButtonBase,
+  Flex as FlexBase,
+  HStack as HStackBase,
+  Link as ChakraLinkBase,
+} from '@chakra-ui/react';
 import { DateTime } from 'luxon';
+
+// Cast Chakra components to bypass TS2590 ("union type too complex").
+const IconButton = IconButtonBase as React.ComponentType<any>;
+const Flex = FlexBase as React.ComponentType<any>;
+const HStack = HStackBase as React.ComponentType<any>;
+const ChakraLink = ChakraLinkBase as React.ComponentType<any>;
 
 export function getColumn(
   deleteFunction: (e: any, id: string) => void,
@@ -9,7 +20,7 @@ export function getColumn(
   approveFunction: (id: string) => void,
   isGerente: boolean
 ) {
-  const columns = [
+  const columns: any[] = [
     {
       Header: 'Código',
       accessor: 'id',
@@ -77,23 +88,8 @@ export function getColumn(
                 icon={<FiIcons.FiInfo size={18} color="#eeeef2" />}
               />
             </ChakraLink>
-            {isGerente && row.original.situacao === 'EM_ANALISE' && (
-              <ChakraLink
-                onClick={() => approveFunction(row.original.pedido_id)}
-              >
-                <IconButton
-                  size="sm"
-                  aria-label="Aprovar pedido"
-                  title="Aprovar pedido"
-                  colorScheme="green"
-                  bg="green.500"
-                  _hover={{
-                    bg: 'green.700',
-                  }}
-                  icon={<FiIcons.FiCheckCircle size={18} color="#eeeef2" />}
-                />
-              </ChakraLink>
-            )}
+            {/* Aprovação/reprovação agora só dentro do pedido (ListItensOrder),
+                não mais pela lista. */}
             {/* <ChakraLink
               onClick={(e) => {
                 deleteFunction(e, row.original.id);
