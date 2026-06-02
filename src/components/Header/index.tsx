@@ -31,11 +31,11 @@ export const Header = () => {
             mr="2"
             boxSize="48px"
             src={logo}
-            alt="Logo"
+            alt="Logo essencial"
             objectFit="contain"
           />
           <Text fontFamily="kallisto" fontSize="2xl" fontWeight="bold">
-            Essencial
+            essencial
             <Text
               as="span"
               fontFamily="kallisto"
