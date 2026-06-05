@@ -215,6 +215,52 @@ function desenharBandeira(ctx: CanvasRenderingContext2D, casa: Casa, w: number, 
   ctx.restore();
 }
 
+// Marco de PARTIDA / CHEGADA — banner com poste, desenhado em cima da pista.
+function desenharMarco(ctx: CanvasRenderingContext2D, ponto: Ponto, texto: string, cor: string, w: number, h: number) {
+  const p = projetar(ponto, w, h);
+  const s = p.s;
+  const bw = 104 * s;
+  const bh = 30 * s;
+  const bx = p.x - bw / 2;
+  const by = p.y - 78 * s;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // sombra no chão
+  ctx.fillStyle = 'rgba(0,0,0,.32)';
+  ctx.beginPath();
+  ctx.ellipse(p.x, p.y + 9 * s, 30 * s, 9 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // postes
+  ctx.strokeStyle = CORES.poste;
+  ctx.lineWidth = Math.max(2, 5 * s);
+  ctx.beginPath();
+  ctx.moveTo(bx + 4 * s, p.y);
+  ctx.lineTo(bx + 4 * s, by);
+  ctx.moveTo(bx + bw - 4 * s, p.y);
+  ctx.lineTo(bx + bw - 4 * s, by);
+  ctx.stroke();
+
+  // banner
+  ctx.fillStyle = cor;
+  ctx.strokeStyle = CORES.texto;
+  ctx.lineWidth = Math.max(2, 3 * s);
+  ctx.beginPath();
+  ctx.rect(bx, by, bw, bh);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = CORES.texto;
+  ctx.font = `900 ${Math.max(12, 16 * s)}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(texto, p.x, by + bh / 2 + 1 * s);
+  ctx.restore();
+}
+
 function desenharVendedor(ctx: CanvasRenderingContext2D, v: VendedorProgresso, x: number, z: number, w: number, h: number, tempo: number, delay: number) {
   const p = projetar({ x, z }, w, h);
   const s = p.s * 0.8;
@@ -301,7 +347,13 @@ function desenharCena(
     });
   });
 
+  // CHEGADA fica ao fundo (z menor), desenhada antes das casas/peões.
+  desenharMarco(ctx, CAMINHO[CAMINHO.length - 1], 'CHEGADA', CORES.laranjaEscuro, w, h);
+
   CASAS.slice().sort((a, b) => a.z - b.z).forEach((casa) => desenharBandeira(ctx, casa, w, h));
+
+  // PARTIDA fica na frente (z maior), desenhada por cima.
+  desenharMarco(ctx, INICIO, 'PARTIDA', '#3a4256', w, h);
   vendedoresProjetados
     .sort((a, b) => a.depth - b.depth)
     .forEach((item) => {

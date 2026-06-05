@@ -15,7 +15,6 @@ import {
   Td as TdBase,
   Badge as BadgeBase,
   IconButton as IconButtonBase,
-  useToast,
 } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
@@ -54,15 +53,12 @@ type Linha = { id: string; nome: string; ano: number; totalMeta: number; meses: 
 export default function ListMetas() {
   const { user } = useAuth();
   const history = useHistory();
-  const toast = useToast();
 
   const [ano, setAno] = useState(anoAtual);
   const [linhas, setLinhas] = useState<Linha[]>([]);
-  const [simulado, setSimulado] = useState(false);
   const [carregando, setCarregando] = useState(false);
 
   async function carregar() {
-    setSimulado(false);
     setCarregando(true);
 
     // mapa colaborador_id -> nome
@@ -104,38 +100,6 @@ export default function ListMetas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ano]);
 
-  function simular() {
-    api
-      .get('/api-essencial/v1/colaboradores')
-      .then((res) => {
-        const base = (res.data || []).slice(0, 5);
-        const lista: Linha[] = (base.length
-          ? base.map((c: any) => ({ id: c.colaborador_id, nome: c.nome }))
-          : [
-              { id: 'd1', nome: 'Mário Silva' },
-              { id: 'd2', nome: 'Ana Souza' },
-              { id: 'd3', nome: 'Carlos Lima' },
-            ]
-        ).map((v: any) => ({
-          id: v.id,
-          nome: v.nome,
-          ano,
-          meses: 12,
-          totalMeta: 12_000_000,
-        }));
-        setLinhas(lista);
-        setSimulado(true);
-        toast({
-          title: 'Modo simulação',
-          description: 'Exemplos só pra visualizar. Clique em "Atualizar" pra ver os reais.',
-          status: 'info',
-          duration: 4000,
-          isClosable: true,
-        });
-      })
-      .catch(() => {});
-  }
-
   return (
     <>
       <Header />
@@ -151,9 +115,6 @@ export default function ListMetas() {
               <HStack spacing="3">
                 <Button size="sm" variant="outline" colorScheme="gray" onClick={carregar}>
                   Atualizar
-                </Button>
-                <Button size="sm" variant="outline" colorScheme="orange" onClick={simular}>
-                  Simular
                 </Button>
                 <Button
                   size="sm"
@@ -173,7 +134,6 @@ export default function ListMetas() {
               <Select
                 bgColor="gray.700" variant="filled" _hover={{ bgColor: 'gray.700' }}
                 value={ano} onChange={(e: any) => setAno(Number(e.target.value))}
-                isDisabled={simulado}
               >
                 {[anoAtual - 1, anoAtual, anoAtual + 1].map((a) => (
                   <option key={a} value={a}>{a}</option>
@@ -184,12 +144,10 @@ export default function ListMetas() {
             {linhas.length === 0 ? (
               <Box bg="gray.900" borderRadius="lg" p="8" textAlign="center">
                 <Text color="gray.400">
-                  {carregando
-                    ? 'Carregando...'
-                    : 'Nenhuma meta cadastrada ainda (a leitura aparece quando o backend subir o endpoint).'}
+                  {carregando ? 'Carregando...' : 'Nenhuma meta cadastrada ainda.'}
                 </Text>
                 <Text color="orange.200" mt="2" fontSize="sm">
-                  Clique em "Simular" para visualizar como fica, ou "Nova meta" para cadastrar.
+                  Clique em "Nova meta" para cadastrar.
                 </Text>
               </Box>
             ) : (

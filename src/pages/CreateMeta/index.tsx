@@ -57,7 +57,9 @@ const MESES = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 
-type ItemMeta = { categoriaId: string; produtoId: string; valor: string };
+// quantidade é a quantidade de produtos do item — métrica própria, ao lado do
+// valor; não entra na conta do valor da meta.
+type ItemMeta = { categoriaId: string; produtoId: string; valor: string; quantidade: string };
 type MesMeta = { valorMeta: string; itens: ItemMeta[] };
 
 type Vendedor = { id: string; nome: string };
@@ -90,9 +92,11 @@ export const CreateMeta = () => {
 
   const [vendedoresSel, setVendedoresSel] = useState<string[]>([]);
   const [ano, setAno] = useState(anoAtual);
-  const [mesAtivo, setMesAtivo] = useState(mesCorrente);
+  // Meses selecionados (clicar alterna). A meta editada vale para todos eles.
+  // mesFoco é o mês cujos dados estão sendo exibidos no painel de edição.
+  const [mesesSel, setMesesSel] = useState<number[]>([mesCorrente]);
+  const [mesFoco, setMesFoco] = useState(mesCorrente);
   const [salvando, setSalvando] = useState(false);
-  const [pendenteExemplo, setPendenteExemplo] = useState(false);
 
   // metas[1..12]
   const [metas, setMetas] = useState<Record<number, MesMeta>>(() => {
@@ -134,7 +138,8 @@ export const CreateMeta = () => {
     const anoQ = Number(q.get('ano'));
     const anoSel = anoQ || anoAtual;
     if (anoQ) setAno(anoQ);
-    setMesAtivo(mesCorrente);
+    setMesesSel([mesCorrente]);
+    setMesFoco(mesCorrente);
 
     api
       .get(`/api-essencial/v1/metas/${user.empresa.id}`, {
@@ -153,40 +158,51 @@ export const CreateMeta = () => {
                 produtoId: i.produto_id || '',
                 valor:
                   currencyMask(String(Math.round((Number(i.valor) || 0) * 100))) || '',
+                quantidade:
+                  i.quantidade != null && Number(i.quantidade) > 0
+                    ? String(i.quantidade)
+                    : '',
               })),
             };
           }
         });
         setMetas(novo);
       })
-      .catch(() => {
-        // endpoint de meta ainda não existe → mostra um exemplo local
-        // (com grupos/produtos reais) só pra você VER os itens no modo edição.
-        setPendenteExemplo(true);
-      });
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
-  // preenche o exemplo assim que grupos/produtos carregarem (modo edição sem endpoint)
-  useEffect(() => {
-    if (pendenteExemplo && categorias.length && produtos.length) {
-      preencherExemplo();
-      setPendenteExemplo(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendenteExemplo, categorias, produtos]);
-
-  const mes = metas[mesAtivo];
+  const mes = metas[mesFoco] || metaVazia();
 
   const totalDistribuido = useMemo(
     () => mes.itens.reduce((soma, item) => soma + parseMoeda(item.valor), 0),
     [mes]
   );
+  const totalQuantidade = useMemo(
+    () => mes.itens.reduce((soma, item) => soma + (Number(item.quantidade) || 0), 0),
+    [mes]
+  );
   const valorMetaNum = parseMoeda(mes.valorMeta);
   const restante = valorMetaNum - totalDistribuido;
 
+  // Alterna a seleção do mês ao clicar (e foca nele para exibir/editar).
+  function toggleMes(m: number) {
+    const selecionado = mesesSel.includes(m);
+    const novo = selecionado
+      ? mesesSel.filter((x) => x !== m)
+      : [...mesesSel, m].sort((a, b) => a - b);
+    setMesesSel(novo);
+    setMesFoco(selecionado ? novo[novo.length - 1] ?? m : m);
+  }
+
+  // As edições valem para TODOS os meses selecionados (ou o foco, se nenhum).
   function atualizarMes(novo: Partial<MesMeta>) {
-    setMetas((prev) => ({ ...prev, [mesAtivo]: { ...prev[mesAtivo], ...novo } }));
+    setMetas((prev) => {
+      const next = { ...prev };
+      const alvos = mesesSel.length ? mesesSel : [mesFoco];
+      for (const m of alvos) next[m] = { ...prev[m], ...novo };
+      return next;
+    });
   }
 
   function setValorMeta(valor: string) {
@@ -195,7 +211,7 @@ export const CreateMeta = () => {
 
   function adicionarItem() {
     atualizarMes({
-      itens: [...mes.itens, { categoriaId: '', produtoId: '', valor: '' }],
+      itens: [...mes.itens, { categoriaId: '', produtoId: '', valor: '', quantidade: '' }],
     });
   }
 
@@ -210,6 +226,8 @@ export const CreateMeta = () => {
       // Trocou o grupo → zera o produto (que pertencia ao grupo anterior).
       if (campo === 'categoriaId') atualizado.produtoId = '';
       if (campo === 'valor') atualizado.valor = currencyMask(valor) || '';
+      // Quantidade aceita apenas números inteiros.
+      if (campo === 'quantidade') atualizado.quantidade = valor.replace(/\D/g, '');
       return atualizado;
     });
     atualizarMes({ itens });
@@ -252,6 +270,7 @@ export const CreateMeta = () => {
       }
     }
 
+
     // Meses com meta definida (mesma estrutura aplicada a todos os selecionados)
     const meses = Object.entries(metas)
       .filter(([, dados]) => parseMoeda(dados.valorMeta) > 0)
@@ -259,27 +278,25 @@ export const CreateMeta = () => {
         mes: Number(m),
         valor_meta: parseMoeda(dados.valorMeta),
         itens: dados.itens
-          .filter((i) => i.categoriaId && parseMoeda(i.valor) > 0)
+          .filter((i) => i.categoriaId && (parseMoeda(i.valor) > 0 || Number(i.quantidade) > 0))
           .map((i) => ({
             categoria_id: i.categoriaId,
             produto_id: i.produtoId || null,
             valor: parseMoeda(i.valor),
+            quantidade: Number(i.quantidade) || 0,
           })),
       }));
 
     setSalvando(true);
     let salvos = 0;
-    let pendente = false;
+    let falhou = false;
     for (const cid of vendedoresSel) {
       const payload = { empresa_id: user.empresa.id, colaborador_id: cid, ano, meses };
       try {
-        // Endpoint a ser criado no backend (POST /metas).
         await api.post('/api-essencial/v1/metas', payload);
         salvos++;
       } catch {
-        pendente = true;
-        // eslint-disable-next-line no-console
-        console.log('payload meta:', payload);
+        falhou = true;
       }
     }
     setSalvando(false);
@@ -292,45 +309,16 @@ export const CreateMeta = () => {
         isClosable: true,
       });
       history.push('/listar/meta');
-    } else if (pendente) {
+    } else if (falhou) {
       toast({
-        title: 'Salvamento pendente de backend',
+        title: 'Erro ao salvar as metas',
         description:
-          'A tela está pronta. Falta o endpoint POST /metas no servidor para gravar.',
-        status: 'info',
+          'Não foi possível salvar. Tente novamente.',
+        status: 'error',
         duration: 5000,
         isClosable: true,
       });
     }
-  }
-
-  // Preenche metas de demonstração nos 12 meses (grupos/produtos reais) —
-  // pra apresentar a ideia pro chefe sem precisar digitar tudo.
-  function preencherExemplo() {
-    if (!vendedoresSel.length && vendedores[0]) setVendedoresSel([vendedores[0].id]);
-    const cats = categorias.slice(0, 3);
-    const novo: Record<number, MesMeta> = {};
-    for (let m = 1; m <= 12; m++) {
-      const itens: ItemMeta[] = [];
-      if (cats[0]) {
-        const prods = produtosDoGrupo(cats[0].categoria_id);
-        itens.push({ categoriaId: cats[0].categoria_id, produtoId: '', valor: currencyMask('50000000') || '' }); // 500k grupo
-        if (prods[0]) {
-          itens.push({ categoriaId: cats[0].categoria_id, produtoId: prods[0].produto_id, valor: currencyMask('35000000') || '' }); // 350k produto
-        }
-      }
-      if (cats[1]) itens.push({ categoriaId: cats[1].categoria_id, produtoId: '', valor: currencyMask('15000000') || '' }); // 150k
-      novo[m] = { valorMeta: currencyMask('100000000') || '', itens }; // meta 1.000.000,00
-    }
-    setMetas(novo);
-    setMesAtivo(mesCorrente);
-    toast({
-      title: 'Exemplo preenchido',
-      description: 'Metas de demonstração nos 12 meses. Ajuste o que quiser e apresente.',
-      status: 'info',
-      duration: 4000,
-      isClosable: true,
-    });
   }
 
   return (
@@ -345,15 +333,6 @@ export const CreateMeta = () => {
               <Heading size="md" fontWeight="normal">
                 METAS DE VENDA
               </Heading>
-              <Button
-                size="sm"
-                colorScheme="orange"
-                variant="outline"
-                leftIcon={<FiIcons.FiZap />}
-                onClick={preencherExemplo}
-              >
-                Preencher exemplo
-              </Button>
             </HStack>
 
             <Divider my="6" borderColor="gray.700" />
@@ -380,9 +359,32 @@ export const CreateMeta = () => {
                     >
                       {vendedoresSel.length === 0
                         ? 'Selecione um ou mais vendedores'
+                        : vendedores.length > 0 && vendedoresSel.length === vendedores.length
+                        ? 'Todos os vendedores'
                         : `${vendedoresSel.length} vendedor(es) selecionado(s)`}
                     </MenuButton>
                     <MenuList maxH="280px" overflowY="auto" bg="gray.700" borderColor="gray.600">
+                      <HStack px="3" py="2" spacing="2">
+                        <Button
+                          size="xs"
+                          colorScheme="orange"
+                          variant="outline"
+                          flex="1"
+                          onClick={() => setVendedoresSel(vendedores.map((v) => v.id))}
+                        >
+                          Todos
+                        </Button>
+                        <Button
+                          size="xs"
+                          colorScheme="gray"
+                          variant="outline"
+                          flex="1"
+                          onClick={() => setVendedoresSel([])}
+                        >
+                          Limpar
+                        </Button>
+                      </HStack>
+                      <Divider borderColor="gray.600" />
                       <MenuOptionGroup
                         type="checkbox"
                         value={vendedoresSel}
@@ -437,36 +439,31 @@ export const CreateMeta = () => {
 
             <Divider my="6" borderColor="gray.700" />
 
-            {/* As 12 casas (meses) */}
+            {/* As 12 casas (meses) — clique alterna a seleção (pode marcar vários) */}
             <Text mb="3" color="gray.300">
-              Meses (clique para editar a meta de cada um)
+              Meses (clique para selecionar; clique de novo para tirar). A meta
+              digitada vale para todos os meses selecionados.
             </Text>
             <Wrap spacing="3">
               {MESES.map((nome, i) => {
                 const m = i + 1;
-                const ativo = m === mesAtivo;
+                const selecionado = mesesSel.includes(m);
+                const foco = m === mesFoco;
                 const preenchido = mesPreenchido(m);
                 return (
                   <WrapItem key={m}>
                     <Button
                       size="sm"
                       minW="110px"
-                      onClick={() => setMesAtivo(m)}
-                      colorScheme={ativo ? 'orange' : 'gray'}
-                      variant={ativo ? 'solid' : 'outline'}
-                      borderColor={preenchido ? 'orange.200' : 'gray.600'}
+                      onClick={() => toggleMes(m)}
+                      colorScheme={selecionado ? 'orange' : 'gray'}
+                      variant={selecionado ? 'solid' : 'outline'}
+                      borderColor={
+                        foco ? 'orange.300' : preenchido ? 'orange.200' : 'gray.600'
+                      }
+                      borderWidth={foco ? '2px' : '1px'}
                     >
                       {nome}
-                      {preenchido && (
-                        <Box
-                          as="span"
-                          ml="2"
-                          w="8px"
-                          h="8px"
-                          borderRadius="full"
-                          bg="green.300"
-                        />
-                      )}
                     </Button>
                   </WrapItem>
                 );
@@ -477,9 +474,17 @@ export const CreateMeta = () => {
 
             {/* Meta do mês selecionado */}
             <Box>
-              <Heading size="sm" fontWeight="normal" mb="4">
-                {MESES[mesAtivo - 1]} / {ano}
+              <Heading size="sm" fontWeight="normal" mb="2">
+                {mesesSel.length <= 1
+                  ? `${MESES[mesFoco - 1]} / ${ano}`
+                  : `${mesesSel.length} meses selecionados / ${ano}`}
               </Heading>
+              {mesesSel.length > 1 && (
+                <Text mb="4" fontSize="sm" color="orange.200">
+                  Editando: {mesesSel.map((m) => MESES[m - 1]).join(', ')} — o que
+                  você digitar aqui é aplicado a todos eles.
+                </Text>
+              )}
 
               <Box maxW="320px" mb="6">
                 <Text mb="2" color="gray.300">
@@ -595,6 +600,24 @@ export const CreateMeta = () => {
                       />
                     </Box>
 
+                    <Box w="120px">
+                      <Text mb="1" fontSize="xs" color="gray.400">
+                        Qtd. produtos
+                      </Text>
+                      <Input
+                        size="sm"
+                        bgColor="gray.700"
+                        variant="filled"
+                        _hover={{ bgColor: 'gray.700' }}
+                        placeholder="0"
+                        inputMode="numeric"
+                        value={item.quantidade}
+                        onChange={(e: any) =>
+                          atualizarItem(index, 'quantidade', e.target.value)
+                        }
+                      />
+                    </Box>
+
                     <IconButton
                       size="sm"
                       aria-label="Remover"
@@ -608,9 +631,9 @@ export const CreateMeta = () => {
                 ))}
               </VStack>
 
-              {/* Resumo da distribuição */}
+              {/* Resumo da distribuição de VALOR */}
               {valorMetaNum > 0 && (
-                <HStack mt="5" spacing="4">
+                <HStack mt="5" spacing="4" flexWrap="wrap">
                   <Badge colorScheme="gray" p="2" borderRadius="md">
                     Meta: R$ {mes.valorMeta || '0,00'}
                   </Badge>
@@ -629,6 +652,11 @@ export const CreateMeta = () => {
                     {restante < 0 ? 'Excedeu: R$ ' : 'Restante (livre): R$ '}
                     {currencyMask(String(Math.round(Math.abs(restante) * 100)))}
                   </Badge>
+                  {totalQuantidade > 0 && (
+                    <Badge colorScheme="blue" p="2" borderRadius="md">
+                      Qtd. produtos: {totalQuantidade}
+                    </Badge>
+                  )}
                 </HStack>
               )}
             </Box>

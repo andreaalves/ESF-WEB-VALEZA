@@ -1,0 +1,39 @@
+/* Estilos do tabuleiro 3D (movidos do inline para satisfazer o no-inline-styles). */
+.tabuleiro3d-wrap {
+  position: relative;
+  width: 100%;
+  height: 760px;
+  overflow: hidden;
+  background: transparent;
+}
+
+.tabuleiro3d-botoes {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tabuleiro3d-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid #4b4d63;
+  background: rgba(31, 32, 41, 0.88);
+  color: #eeeef2;
+  cursor: pointer;
+  font-size: 20px;
+  user-select: none;
+  backdrop-filter: blur(4px);
+}
+
+.tabuleiro3d-btn--ativo {
+  border-color: #fe8026;
+  color: #fe8026;
+}

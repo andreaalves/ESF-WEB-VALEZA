@@ -12,12 +12,13 @@ import {
   ButtonGroup,
   useToast,
   Grid,
+  HStack,
+  Badge,
 } from "@chakra-ui/react";
 import { Header } from "../../components/Header";
 import { useHistory, useParams } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../../service/api";
-import { useState } from "react";
 import { currencyMask } from "../../helpers/currencyMask";
 import { SiderbarResponsive } from "../../components/SiderbarResponsive";
 import { Wapper } from "../../components/Wapper";
@@ -27,6 +28,88 @@ import { DateTime } from "luxon";
 import Chart from "react-apexcharts";
 import { InputCustom } from "../../components/InputCustom/InputCustom";
 import { useForm } from "react-hook-form";
+
+type DashboardInsights = {
+  margemMedia: number;
+  pedidosAnalise: number;
+  ticketMedio: number;
+  clientesRisco: number;
+  pedidoIdeal: Array<{ codigo?: string; nome: string; quantidade: number }>;
+  tracking: Array<{ data: string; texto: string }>;
+};
+
+function numero(v: any) {
+  return Number(v ?? 0) || 0;
+}
+
+function dataPedido(pedido: any) {
+  return pedido?.dataEmissao || pedido?.data_emissao || pedido?.created_at || pedido?.createdAt;
+}
+
+function valorPedido(pedido: any) {
+  return numero(pedido?.valorPedido ?? pedido?.valor_pedido ?? pedido?.totalPedido ?? pedido?.valor_total);
+}
+
+function margemPedido(pedido: any) {
+  return numero(pedido?.margemPedido ?? pedido?.margem_pedido ?? pedido?.margem);
+}
+
+function situacaoPedido(pedido: any) {
+  return String(pedido?.situacao || pedido?.status || '').toUpperCase();
+}
+
+function itensPedido(pedido: any): any[] {
+  return pedido?.itensPedido || pedido?.itens_pedido || pedido?.itens || [];
+}
+
+function montarInsightsLocal(orders: any[]): DashboardInsights {
+  const agora = DateTime.now();
+  const pedidos = Array.isArray(orders) ? orders : [];
+  const pedidosMes = pedidos.filter((p) => {
+    const d = DateTime.fromISO(String(dataPedido(p) || ''));
+    return d.isValid && d.month === agora.month && d.year === agora.year;
+  });
+  const base = pedidosMes.length ? pedidosMes : pedidos;
+  const total = base.reduce((sum, p) => sum + valorPedido(p), 0);
+  const comMargem = base.filter((p) => margemPedido(p) > 0);
+  const margemMedia = comMargem.length
+    ? comMargem.reduce((sum, p) => sum + margemPedido(p), 0) / comMargem.length
+    : 0;
+  const pedidosAnalise = pedidos.filter((p) => ['EM_ANALISE', 'BLOQUEADO', 'PENDENTE_APROVACAO'].includes(situacaoPedido(p))).length;
+
+  const porProduto = new Map<string, { codigo?: string; nome: string; quantidade: number }>();
+  base.forEach((pedido) => {
+    itensPedido(pedido).forEach((item: any) => {
+      const produto = item?.produto || item?.produtos || item;
+      const nome = produto?.nome || produto?.descricao || item?.nome_produto || 'Produto';
+      const codigo = produto?.codigo || produto?.produto_id || item?.produto_id;
+      const key = String(codigo || nome);
+      const atual = porProduto.get(key) || { codigo: codigo ? String(codigo) : undefined, nome, quantidade: 0 };
+      atual.quantidade += numero(item?.quantidade);
+      porProduto.set(key, atual);
+    });
+  });
+
+  const ultimo = [...pedidos].sort((a, b) => {
+    const da = DateTime.fromISO(String(dataPedido(a) || '')).toMillis();
+    const db = DateTime.fromISO(String(dataPedido(b) || '')).toMillis();
+    return db - da;
+  })[0];
+  const dataUltimo = dataPedido(ultimo);
+  const status = situacaoPedido(ultimo) || 'PENDENTE';
+
+  return {
+    margemMedia,
+    pedidosAnalise,
+    ticketMedio: base.length ? total / base.length : 0,
+    clientesRisco: 0,
+    pedidoIdeal: Array.from(porProduto.values()).sort((a, b) => b.quantidade - a.quantidade).slice(0, 4),
+    tracking: ultimo ? [
+      { data: dataUltimo ? DateTime.fromISO(String(dataUltimo)).toFormat('dd/MM/yyyy') : 'Hoje', texto: `Pedido ${status.toLowerCase().replace(/_/g, ' ')}` },
+      { data: dataUltimo ? DateTime.fromISO(String(dataUltimo)).toFormat('dd/MM/yyyy') : 'Hoje', texto: `Pedido #${ultimo?.pedido_id || ultimo?.id || '-'} atualizado` },
+    ] : [],
+  };
+}
 
 export const Dashboard = () => {
   const {
@@ -49,6 +132,7 @@ export const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [initialDate, setInitialDate] = useState("");
   const [finalDate, setFinalDate] = useState("");
+  const [remoteInsights, setRemoteInsights] = useState<DashboardInsights | null>(null);
 
   function handleInitialDate(e: any) {
     setInitialDate(e.target?.value);
@@ -82,6 +166,18 @@ export const Dashboard = () => {
   }, [orders.length]);
 
   useEffect(() => {
+    async function getInsights() {
+      try {
+        const response = await api.get(`/api-essencial/v1/insights/dashboard/${user.empresa.id}`);
+        setRemoteInsights(response.data?.data ?? response.data);
+      } catch {
+        setRemoteInsights(null);
+      }
+    }
+    getInsights();
+  }, [user.empresa.id]);
+
+  useEffect(() => {
     let dt = DateTime.now();
 
     const ordersOfDay = orders.filter(
@@ -108,6 +204,8 @@ export const Dashboard = () => {
   const total = orders.reduce((acc, valor: any) => {
     return acc + Number(valor.valorPedido);
   }, 0);
+
+  const insights = useMemo(() => remoteInsights || montarInsightsLocal(orders), [remoteInsights, orders]);
 
   // setOrderFilter(ordersOfDay);
 
@@ -329,6 +427,69 @@ export const Dashboard = () => {
                   <Text color="gray.300" fontWeight="bold" fontSize="2rem">
                     {orders.length}
                   </Text>
+                </Box>
+              </SimpleGrid>
+
+              <SimpleGrid minChildWidth="260px" spacing="6" w="100%">
+                <Box bg="gray.700" borderRadius={8} p={5} borderTop="4px solid #fe8026">
+                  <HStack justify="space-between" mb={3}>
+                    <Text color="gray.100" fontWeight="bold">Margem Média</Text>
+                    <Badge colorScheme={insights.margemMedia >= 60 ? 'green' : 'orange'}>{insights.margemMedia >= 60 ? 'saudável' : 'atenção'}</Badge>
+                  </HStack>
+                  <Text color="#fe8026" fontWeight="bold" fontSize="3xl">{insights.margemMedia.toFixed(2)}%</Text>
+                  <Box mt={3} h="6px" bg="gray.800" borderRadius="full" overflow="hidden">
+                    <Box h="100%" w={`${Math.min(Math.max(insights.margemMedia, 0), 100)}%`} bg="#fe8026" />
+                  </Box>
+                </Box>
+
+                <Box bg="gray.700" borderRadius={8} p={5} borderTop="4px solid #18c7b6">
+                  <Text color="gray.100" fontWeight="bold" mb={2}>Pedidos em Análise</Text>
+                  <Text color="#18c7b6" fontWeight="bold" fontSize="3xl">{insights.pedidosAnalise}</Text>
+                  <Text color="gray.300" fontSize="sm">Aguardando liberação ou revisão comercial.</Text>
+                </Box>
+
+                <Box bg="gray.700" borderRadius={8} p={5} borderTop="4px solid #f6c945">
+                  <Text color="gray.100" fontWeight="bold" mb={2}>Ticket Médio</Text>
+                  <Text color="#f6c945" fontWeight="bold" fontSize="3xl">R$ {currencyMask(String(insights.ticketMedio))}</Text>
+                  <Text color="gray.300" fontSize="sm">Baseado nos pedidos do período carregado.</Text>
+                </Box>
+
+                <Box bg="gray.700" borderRadius={8} p={5} borderTop="4px solid #ef4444">
+                  <Text color="gray.100" fontWeight="bold" mb={2}>Clientes em Risco</Text>
+                  <Text color="#ef4444" fontWeight="bold" fontSize="3xl">{insights.clientesRisco}</Text>
+                  <Text color="gray.300" fontSize="sm">Pronto para o backend calcular perda de vínculo.</Text>
+                </Box>
+              </SimpleGrid>
+
+              <SimpleGrid minChildWidth="320px" spacing="6" w="100%">
+                <Box bg="gray.700" borderRadius={8} p={5}>
+                  <HStack justify="space-between" mb={4}>
+                    <Text color="#fff" fontWeight="bold" fontSize="1.1rem">Pedido Ideal</Text>
+                    <Badge colorScheme="orange">mix sugerido</Badge>
+                  </HStack>
+                  {insights.pedidoIdeal.length ? insights.pedidoIdeal.map((p, idx) => (
+                    <HStack key={`${p.codigo || p.nome}-${idx}`} justify="space-between" py={2} borderTop={idx ? '1px solid rgba(255,255,255,0.08)' : '0'}>
+                      <Text color="gray.100" fontWeight="semibold">{p.codigo ? `${p.codigo} - ` : ''}{p.nome}</Text>
+                      <Text color="gray.300">{p.quantidade} un.</Text>
+                    </HStack>
+                  )) : (
+                    <Text color="gray.300">Sem itens suficientes para sugerir um mix. O backend pode enviar os produtos recomendados aqui.</Text>
+                  )}
+                </Box>
+
+                <Box bg="gray.700" borderRadius={8} p={5}>
+                  <HStack justify="space-between" mb={4}>
+                    <Text color="#fff" fontWeight="bold" fontSize="1.1rem">Tracking Operacional</Text>
+                    <Badge colorScheme="teal">último pedido</Badge>
+                  </HStack>
+                  {insights.tracking.length ? insights.tracking.map((t, idx) => (
+                    <Box key={`${t.data}-${idx}`} pl={4} py={2} borderLeft="2px solid #fe8026">
+                      <Text color="gray.400" fontSize="sm">{t.data}</Text>
+                      <Text color="gray.100" fontWeight="semibold">{t.texto}</Text>
+                    </Box>
+                  )) : (
+                    <Text color="gray.300">Quando houver pedidos, o histórico aparece aqui.</Text>
+                  )}
                 </Box>
               </SimpleGrid>
 
