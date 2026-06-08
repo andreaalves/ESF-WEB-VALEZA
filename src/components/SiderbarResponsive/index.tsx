@@ -25,7 +25,7 @@ export const SiderbarResponsive = () => {
 
   return (
     <NavFlex
-      zIndex="1"
+      zIndex="20"
       pos="fixed"
       top="0px"
       transitionDuration="0.3s"

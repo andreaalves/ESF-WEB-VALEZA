@@ -52,6 +52,7 @@ export const AvatarBoneco: React.FC<{
 
   const containerStyle: React.CSSProperties = {
     position: 'relative',
+    isolation: 'isolate', // cria stacking context próprio: os zIndex internos (rosto/cabelo) não vazam por cima da sidebar
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -193,43 +194,42 @@ export const TabuleiroTrilha: React.FC<{
         key={v.id}
         cor={v.cor}
         nome={v.nome}
-        size={32}
+        size={26}
         title={`${v.nome} — ${Math.round((v.casas / 12) * 100)}%`}
         onClick={onVendedorClick ? () => onVendedorClick(v.id) : undefined}
       />
     ));
 
   const celulaBase: React.CSSProperties = {
-    flex: '0 0 auto',
-    width: 84,
-    minHeight: 140,
-    borderRadius: 14,
+    flex: '1 1 0',
+    minWidth: 0,
+    minHeight: 120,
+    borderRadius: 12,
     background: '#171922',
     border: '1px solid #2a2e3a',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    padding: '10px 6px 8px',
+    padding: '8px 3px 6px',
     position: 'relative',
   };
 
   const portal = (cor: string): React.CSSProperties => ({
     ...celulaBase,
-    width: 92,
     background: `linear-gradient(160deg, ${cor} 0%, #10131b 120%)`,
     border: `1px solid ${cor}`,
   });
 
   return (
-    <div style={{ width: '100%', overflowX: 'auto', padding: '14px 2px 18px' }}>
-      <div style={{ display: 'flex', alignItems: 'stretch', gap: 10, minWidth: 'min-content' }}>
+    <div style={{ width: '100%', overflowX: 'hidden', padding: '14px 2px 18px' }}>
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 4 }}>
         {/* PARTIDA */}
         <div style={portal('#3a4256')}>
-          <div style={{ fontSize: 24, lineHeight: 1 }}>🚩</div>
-          <div style={{ marginTop: 6, color: '#eeeef2', fontWeight: 900, fontSize: 12, letterSpacing: 1 }}>
+          <div style={{ fontSize: 18, lineHeight: 1 }}>🚩</div>
+          <div style={{ marginTop: 4, color: '#eeeef2', fontWeight: 900, fontSize: 10, letterSpacing: 0 }}>
             PARTIDA
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', marginTop: 'auto', minHeight: 36 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', marginTop: 'auto', minHeight: 30 }}>
             {peoes(0)}
           </div>
         </div>
@@ -240,7 +240,7 @@ export const TabuleiroTrilha: React.FC<{
           const ehAtual = numero === mesAtual;
           return (
             <React.Fragment key={mes}>
-              <div style={{ alignSelf: 'center', color: '#fe8026', fontSize: 18, fontWeight: 900 }}>›</div>
+              <div style={{ alignSelf: 'center', color: '#fe8026', fontSize: 12, fontWeight: 900, flexShrink: 0 }}>›</div>
               <div
                 style={{
                   ...celulaBase,
@@ -251,12 +251,12 @@ export const TabuleiroTrilha: React.FC<{
                 {/* número do mês */}
                 <div
                   style={{
-                    width: 22,
-                    height: 22,
+                    width: 18,
+                    height: 18,
                     borderRadius: '50%',
                     background: ehAtual ? '#fe8026' : '#2a2e3a',
                     color: '#fff',
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: 900,
                     display: 'flex',
                     alignItems: 'center',
@@ -266,7 +266,7 @@ export const TabuleiroTrilha: React.FC<{
                   {numero}
                 </div>
                 {/* nome do mês */}
-                <div style={{ marginTop: 5, color: ehAtual ? '#fe8026' : '#eeeef2', fontWeight: 900, fontSize: 13, letterSpacing: 1 }}>
+                <div style={{ marginTop: 4, color: ehAtual ? '#fe8026' : '#eeeef2', fontWeight: 900, fontSize: 11, letterSpacing: 0 }}>
                   {mes}
                 </div>
                 {/* bonecos */}
@@ -277,7 +277,7 @@ export const TabuleiroTrilha: React.FC<{
                     gap: 4,
                     justifyContent: 'center',
                     marginTop: 'auto',
-                    minHeight: 36,
+                    minHeight: 30,
                   }}
                 >
                   {peoes(numero)}
@@ -288,13 +288,13 @@ export const TabuleiroTrilha: React.FC<{
         })}
 
         {/* CHEGADA */}
-        <div style={{ alignSelf: 'center', color: '#fe8026', fontSize: 18, fontWeight: 900 }}>›</div>
+        <div style={{ alignSelf: 'center', color: '#fe8026', fontSize: 12, fontWeight: 900, flexShrink: 0 }}>›</div>
         <div style={portal('#9c3d0f')}>
-          <div style={{ fontSize: 24, lineHeight: 1 }}>🏁</div>
-          <div style={{ marginTop: 6, color: '#eeeef2', fontWeight: 900, fontSize: 12, letterSpacing: 1 }}>
+          <div style={{ fontSize: 18, lineHeight: 1 }}>🏁</div>
+          <div style={{ marginTop: 4, color: '#eeeef2', fontWeight: 900, fontSize: 10, letterSpacing: 0 }}>
             CHEGADA
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', marginTop: 'auto', minHeight: 36 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', marginTop: 'auto', minHeight: 30 }}>
             {peoes(13)}
           </div>
         </div>

@@ -7,19 +7,18 @@ import {
   Text as TextBase,
   HStack as HStackBase,
   SimpleGrid as SimpleGridBase,
-  Badge as BadgeBase,
   Progress as ProgressBase,
 } from '@chakra-ui/react';
 import { useEffect, useMemo, useState } from 'react';
 import Chart from 'react-apexcharts';
-import { FiDollarSign, FiTrendingUp, FiAward, FiCalendar, FiUsers, FiRefreshCw, FiBarChart2 } from 'react-icons/fi';
+import { FiDollarSign, FiTrendingUp, FiCalendar, FiUsers, FiRefreshCw, FiCheckCircle, FiTarget } from 'react-icons/fi';
 import { Header } from '../../components/Header';
 import { SiderbarResponsive } from '../../components/SiderbarResponsive';
 import { Wapper } from '../../components/Wapper';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../service/api';
 import { useHistory } from 'react-router-dom';
-import { TabuleiroTrilha, AvatarBoneco, VendedorProgresso } from './TabuleiroTrilha';
+import { CorridaTabuleiro, CorridaTabelaClassificacao, CorridaDestaques, ParticipanteCorrida } from './CorridaMetas';
 
 // Chakra v1 + TS strict estoura TS2590; cast para any contorna.
 const Flex = FlexBase as any;
@@ -30,7 +29,6 @@ const Select = SelectBase as any;
 const Text = TextBase as any;
 const HStack = HStackBase as any;
 const SimpleGrid = SimpleGridBase as any;
-const Badge = BadgeBase as any;
 const Progress = ProgressBase as any;
 const ApexChart = Chart as any;
 
@@ -39,10 +37,15 @@ const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'O
 const PALETA = ['#fe8026', '#4fd1c5', '#63b3ed', '#f687b3', '#9f7aea', '#68d391', '#f6ad55', '#fc8181'];
 
 type Vendedor = { id: string; nome: string };
-type MesDado = { meta: number; realizado: number };
+type MesDado = { meta: number; realizado: number; aFaturar: number; faturado: number };
 
 const anoAtual = new Date().getFullYear();
 const mesAtual = new Date().getMonth() + 1;
+
+// Sistema começou em 2026 — sem anos anteriores nem futuros.
+const ANO_INICIO = 2026;
+const ANOS: number[] = [];
+for (let a = ANO_INICIO; a <= Math.max(anoAtual, ANO_INICIO); a++) ANOS.push(a);
 
 function brl(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -50,7 +53,7 @@ function brl(v: number) {
 
 function dadosVazios(): Record<number, MesDado> {
   const o: Record<number, MesDado> = {};
-  for (let m = 1; m <= 12; m++) o[m] = { meta: 0, realizado: 0 };
+  for (let m = 1; m <= 12; m++) o[m] = { meta: 0, realizado: 0, aFaturar: 0, faturado: 0 };
   return o;
 }
 
@@ -70,8 +73,9 @@ export const PainelMetas = () => {
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [vendedorId, setVendedorId] = useState('');
   const [ano, setAno] = useState(anoAtual);
+  const [mesSel, setMesSel] = useState(mesAtual);
   const [dados, setDados] = useState<Record<number, MesDado>>(dadosVazios());
-  const [progresso, setProgresso] = useState<VendedorProgresso[]>([]);
+  const [participantes, setParticipantes] = useState<ParticipanteCorrida[]>([]);
 
   useEffect(() => {
     api
@@ -100,73 +104,101 @@ export const PainelMetas = () => {
       // endpoint de meta ainda não existe — segue só com realizado
     }
 
-    // REALIZADO por colaborador/mês (soma dos pedidos válidos no ano)
-    const realMap: Record<string, Record<number, number>> = {};
+    // REALIZADO por colaborador/mês, separando "a faturar" (sem nota) de "faturado" (com nota)
+    type RealMes = { aFaturar: number; faturado: number };
+    const realMap: Record<string, Record<number, RealMes>> = {};
     try {
       const res = await api.get(`/api-essencial/v1/pedidos/${user.empresa.id}/empresa`);
       (res.data || []).forEach((p: any) => {
         if (!p.data_emissao) return;
         const d = new Date(p.data_emissao);
         if (d.getFullYear() !== Number(ano)) return;
+        // Pedido excluído (soft delete) ou bloqueado não conta como realizado
+        if (p.excluido === true || p.status_pedido === false) return;
         const sit = String(p.situacao || '').toUpperCase();
-        if (['CANCELADO', 'EM_ANALISE', 'ERRO_INTEGRACAO'].includes(sit)) return;
+        // EXCLUIDO_ERP = excluído no ERP; NOTA_CANCELADA = nota cancelada via webhook
+        if (['CANCELADO', 'EM_ANALISE', 'ERRO_INTEGRACAO', 'EXCLUIDO_ERP', 'NOTA_CANCELADA', 'BLOQUEADO'].includes(sit)) return;
         const cid = p.colaborador_id;
         const mes = d.getMonth() + 1;
+        const valor = Number(p.valor_pedido) || 0;
+        // Faturado = situação FATURADO ou já tem nota emitida (nota_erp). Senão, ainda é "a faturar".
+        const ehFaturado = sit === 'FATURADO' || !!String(p.nota_erp || '').trim();
         if (!realMap[cid]) realMap[cid] = {};
-        realMap[cid][mes] = (realMap[cid][mes] || 0) + (Number(p.valor_pedido) || 0);
+        if (!realMap[cid][mes]) realMap[cid][mes] = { aFaturar: 0, faturado: 0 };
+        if (ehFaturado) realMap[cid][mes].faturado += valor;
+        else realMap[cid][mes].aFaturar += valor;
       });
     } catch {}
 
     // dados do vendedor selecionado (ou agregado de todos) p/ gráfico + cards
     const novo = dadosVazios();
     for (let m = 1; m <= 12; m++) {
+      let meta = 0;
+      let aFaturar = 0;
+      let faturado = 0;
       if (vendedorId) {
-        novo[m] = {
-          meta: metaMap[vendedorId]?.[m] || 0,
-          realizado: realMap[vendedorId]?.[m] || 0,
-        };
+        meta = metaMap[vendedorId]?.[m] || 0;
+        aFaturar = realMap[vendedorId]?.[m]?.aFaturar || 0;
+        faturado = realMap[vendedorId]?.[m]?.faturado || 0;
       } else {
-        let meta = 0;
-        let real = 0;
         Object.keys(metaMap).forEach((cid) => (meta += metaMap[cid][m] || 0));
-        Object.keys(realMap).forEach((cid) => (real += realMap[cid][m] || 0));
-        novo[m] = { meta, realizado: real };
+        Object.keys(realMap).forEach((cid) => {
+          aFaturar += realMap[cid][m]?.aFaturar || 0;
+          faturado += realMap[cid][m]?.faturado || 0;
+        });
       }
+      novo[m] = { meta, aFaturar, faturado, realizado: aFaturar + faturado };
     }
     setDados(novo);
 
-    // progresso de cada vendedor p/ a corrida: percentual da meta do mes atual
-    setProgresso(
-      vendedores.slice(0, 8).map((v, i) => {
-        const meta = metaMap[v.id]?.[mesAtual] || 0;
-        const real = realMap[v.id]?.[mesAtual] || 0;
-        const pctMes = meta > 0 ? real / meta : 0;
-        const casas = Math.min(Math.max(pctMes * 12, 0), 12);
-        return { id: v.id, nome: v.nome, casas, cor: PALETA[i % PALETA.length] };
+    // participantes da corrida (mês selecionado): realizado, meta, % e crescimento vs mês anterior
+    const realDoMes = (cid: string, m: number) => {
+      const r = realMap[cid]?.[m];
+      return (r?.aFaturar || 0) + (r?.faturado || 0);
+    };
+    // Só vendedores com meta ou realizado no mês participam da corrida
+    const parts: ParticipanteCorrida[] = vendedores
+      .map((v, i) => {
+        const meta = metaMap[v.id]?.[mesSel] || 0;
+        const realizado = realDoMes(v.id, mesSel);
+        const pct = meta > 0 ? (realizado / meta) * 100 : 0;
+        const realAnt = mesSel > 1 ? realDoMes(v.id, mesSel - 1) : 0;
+        const deltaPct = realAnt > 0 ? ((realizado - realAnt) / realAnt) * 100 : realizado > 0 ? null : 0;
+        return { id: v.id, nome: v.nome, cor: PALETA[i % PALETA.length], realizado, meta, pct, deltaPct };
       })
-    );
+      .filter((p) => p.meta > 0 || p.realizado > 0);
+    setParticipantes(parts);
   }
 
   useEffect(() => {
     carregarReal();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vendedorId, ano]);
+  }, [vendedorId, ano, vendedores, mesSel]);
 
   const totais = useMemo(() => {
-    let meta = 0;
-    let realizado = 0;
     let casasBatidas = 0;
+    let metaAno = 0;
     for (let m = 1; m <= 12; m++) {
-      meta += dados[m].meta;
-      realizado += dados[m].realizado;
+      metaAno += dados[m].meta;
       if (dados[m].meta > 0 && dados[m].realizado >= dados[m].meta) casasBatidas++;
     }
+    // Cards e gauge refletem o mês selecionado (não o ano)
+    const meta = dados[mesSel].meta;
+    const realizado = dados[mesSel].realizado;
+    const aFaturar = dados[mesSel].aFaturar;
+    const faturado = dados[mesSel].faturado;
     const pct = meta > 0 ? (realizado / meta) * 100 : 0;
-    return { meta, realizado, casasBatidas, pct };
-  }, [dados]);
+    return { meta, realizado, aFaturar, faturado, casasBatidas, pct, metaAno };
+  }, [dados, mesSel]);
 
   const gaugeOptions: any = {
-    chart: { background: 'transparent', sparkline: { enabled: true } },
+    chart: {
+      background: 'transparent',
+      sparkline: { enabled: true },
+      redrawOnParentResize: false,
+      redrawOnWindowResize: false,
+      animations: { enabled: false },
+    },
     colors: [totais.pct >= 100 ? '#68d391' : totais.pct >= 70 ? '#f6ad55' : '#fe8026'],
     plotOptions: {
       radialBar: {
@@ -192,34 +224,66 @@ export const PainelMetas = () => {
   };
   const gaugeSeries = [Math.min(totais.pct, 100)];
 
+  // Linha: Meta × Realizado ao longo dos 12 meses do ano
+  const lineOptions: any = {
+    chart: {
+      type: 'line',
+      background: 'transparent',
+      toolbar: { show: false },
+      foreColor: '#9699B0',
+      redrawOnParentResize: false,
+      redrawOnWindowResize: false,
+      animations: { enabled: false },
+    },
+    colors: ['#63b3ed', '#fe8026'],
+    stroke: { width: 3, curve: 'smooth' },
+    markers: { size: 3 },
+    grid: { show: true, borderColor: '#222634', strokeDashArray: 4 },
+    dataLabels: { enabled: false },
+    legend: { labels: { colors: '#cfd2dc' } },
+    xaxis: { categories: MESES, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: '#7c8093' } } },
+    yaxis: {
+      labels: {
+        formatter: (v: number) =>
+          v >= 1000 ? `R$ ${(v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}K` : `R$ ${Math.round(v)}`,
+        style: { colors: '#7c8093' },
+      },
+    },
+    tooltip: { theme: 'dark', y: { formatter: (v: number) => brl(v) } },
+  };
+  const lineSeries = [
+    { name: 'Meta', data: MESES.map((_, i) => dados[i + 1].meta) },
+    { name: 'Realizado', data: MESES.map((_, i) => dados[i + 1].realizado) },
+  ];
+
   const kpiCards = [
     {
-      label: 'Meta do Ano',
+      label: `Meta de ${MESES[mesSel - 1]}`,
       value: brl(totais.meta),
       icon: FiDollarSign,
       color: '#63b3ed',
       bg: 'rgba(99,179,237,0.12)',
     },
     {
-      label: 'Realizado',
-      value: brl(totais.realizado),
+      label: 'A Faturar',
+      value: brl(totais.aFaturar),
       icon: FiTrendingUp,
       color: '#fe8026',
       bg: 'rgba(254,128,38,0.12)',
     },
     {
-      label: '% Atingido',
-      value: `${totais.pct.toFixed(1)}%`,
-      icon: FiBarChart2,
-      color: totais.pct >= 100 ? '#68d391' : totais.pct >= 70 ? '#f6ad55' : '#fc8181',
-      bg: totais.pct >= 100 ? 'rgba(104,211,145,0.12)' : totais.pct >= 70 ? 'rgba(246,173,85,0.12)' : 'rgba(252,129,129,0.12)',
+      label: 'Falta para a meta',
+      value: brl(Math.max(totais.meta - totais.realizado, 0)),
+      icon: FiTarget,
+      color: totais.meta > 0 && totais.realizado >= totais.meta ? '#68d391' : '#f6ad55',
+      bg: totais.meta > 0 && totais.realizado >= totais.meta ? 'rgba(104,211,145,0.12)' : 'rgba(246,173,85,0.12)',
     },
     {
-      label: 'Meses Batidos',
-      value: `${totais.casasBatidas}/12`,
-      icon: FiAward,
-      color: '#9f7aea',
-      bg: 'rgba(159,122,234,0.12)',
+      label: 'Faturado',
+      value: brl(totais.faturado),
+      icon: FiCheckCircle,
+      color: '#68d391',
+      bg: 'rgba(104,211,145,0.12)',
     },
   ];
 
@@ -228,9 +292,9 @@ export const PainelMetas = () => {
       <Header />
       <SiderbarResponsive />
 
-      <Flex align="start" mx="auto" mt="8" px="6">
+      <Flex align="start" mx="auto" mt="8" px="6" w="100%" maxW="100%" overflowX="hidden">
         <Wapper>
-          <Box flex="1" p={['4', '6', '8']} bg="gray.800" borderRadius={12} mb="16">
+          <Box flex="1" w="100%" minW={0} overflowX="hidden" p={['4', '6', '8']} bg="gray.800" borderRadius={12} mb="16">
 
             {/* ── Cabeçalho ── */}
             <HStack justify="space-between" flexWrap="wrap" mb="6">
@@ -276,6 +340,7 @@ export const PainelMetas = () => {
                   </Text>
                 </HStack>
                 <Select
+                  aria-label="Filtrar por vendedor"
                   placeholder="Todos os vendedores"
                   bgColor="gray.700"
                   variant="filled"
@@ -288,6 +353,26 @@ export const PainelMetas = () => {
                   ))}
                 </Select>
               </Box>
+              <Box w="160px">
+                <HStack mb="1" spacing="1">
+                  <FiCalendar color="#9699B0" size={13} />
+                  <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider">
+                    Mês
+                  </Text>
+                </HStack>
+                <Select
+                  aria-label="Filtrar por mês"
+                  bgColor="gray.700"
+                  variant="filled"
+                  _hover={{ bgColor: 'gray.700' }}
+                  value={mesSel}
+                  onChange={(e: any) => setMesSel(Number(e.target.value))}
+                >
+                  {MESES.map((nome, i) => (
+                    <option key={nome} value={i + 1}>{nome}</option>
+                  ))}
+                </Select>
+              </Box>
               <Box w="140px">
                 <HStack mb="1" spacing="1">
                   <FiCalendar color="#9699B0" size={13} />
@@ -296,13 +381,14 @@ export const PainelMetas = () => {
                   </Text>
                 </HStack>
                 <Select
+                  aria-label="Filtrar por ano"
                   bgColor="gray.700"
                   variant="filled"
                   _hover={{ bgColor: 'gray.700' }}
                   value={ano}
                   onChange={(e: any) => setAno(Number(e.target.value))}
                 >
-                  {[anoAtual - 1, anoAtual, anoAtual + 1].map((a) => (
+                  {ANOS.map((a) => (
                     <option key={a} value={a}>{a}</option>
                   ))}
                 </Select>
@@ -359,21 +445,21 @@ export const PainelMetas = () => {
               })}
             </SimpleGrid>
 
-            {/* ── Linha central: gauge + ranking ── */}
+            {/* ── Gauge + Destaques (lado a lado, como antes) ── */}
             <SimpleGrid columns={[1, 1, 2]} spacing="4" mb="6">
-
-              {/* Gauge de performance */}
-              <Box bg="gray.900" borderRadius="xl" p="6" display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+              <Box bg="gray.900" borderRadius="xl" p="6" minW={0} w="100%" overflow="hidden" display="flex" flexDirection="column" alignItems="center" justifyContent="center">
                 <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb="3">
-                  Performance Geral {MESES[mesAtual - 1]}/{ano}
+                  Performance Geral {MESES[mesSel - 1]}/{ano}
                 </Text>
                 <ApexChart
+                  key={`gauge-${vendedorId}-${ano}-${mesSel}`}
                   type="radialBar"
-                  height={220}
+                  width={300}
+                  height={260}
                   series={gaugeSeries}
                   options={gaugeOptions}
                 />
-                <HStack spacing="6" mt="1">
+                <HStack spacing="6" mt="1" flexWrap="wrap" justify="center">
                   <Box textAlign="center">
                     <Text fontSize="xs" color="gray.500">Meta</Text>
                     <Text fontSize="sm" fontWeight="bold" color="gray.200">{brl(totais.meta)}</Text>
@@ -391,72 +477,12 @@ export const PainelMetas = () => {
                 </HStack>
               </Box>
 
-              {/* Ranking de vendedores */}
-              <Box bg="gray.900" borderRadius="xl" p="5" overflow="auto" maxH="320px">
-                <HStack mb="4" spacing="2">
-                  <FiUsers color="#fe8026" size={16} />
-                  <Text fontSize="sm" fontWeight="bold" color="gray.200" textTransform="uppercase" letterSpacing="wider">
-                    Vendedores — {MESES[mesAtual - 1]}
-                  </Text>
-                </HStack>
-                {progresso.length === 0 ? (
-                  <Text fontSize="sm" color="gray.500" textAlign="center" pt="6">
-                    Nenhum dado disponível para o período.
-                  </Text>
-                ) : (
-                  progresso.map((v, idx) => {
-                    const pct = Math.round((v.casas / 12) * 100);
-                    return (
-                      <Box
-                        key={v.id}
-                        mb="3"
-                        pb="3"
-                        borderBottom={idx < progresso.length - 1 ? '1px solid' : 'none'}
-                        borderColor="gray.700"
-                        cursor="pointer"
-                        onClick={() => history.push(`/cadastro/meta/${v.id}?ano=${ano}`)}
-                        _hover={{ opacity: 0.8 }}
-                      >
-                        <HStack spacing="3" mb="1">
-                          {/* Avatar boneco */}
-                          <AvatarBoneco
-                            cor={v.cor}
-                            nome={v.nome}
-                            size={36}
-                            onClick={() => history.push(`/cadastro/meta/${v.id}?ano=${ano}`)}
-                            title={v.nome}
-                          />
-                          <Box flex="1" minW={0}>
-                            <HStack justify="space-between">
-                              <Text fontSize="sm" fontWeight="600" color="gray.100" noOfLines={1}>
-                                {v.nome}
-                              </Text>
-                              <Badge
-                                fontSize="xs"
-                                colorScheme={pct >= 100 ? 'green' : pct >= 70 ? 'yellow' : 'red'}
-                                borderRadius="full"
-                                px="2"
-                              >
-                                {pct}%
-                              </Badge>
-                            </HStack>
-                            <Progress
-                              mt="1"
-                              size="xs"
-                              borderRadius="full"
-                              value={Math.min(pct, 100)}
-                              sx={{
-                                '& > div': {
-                                  background: `linear-gradient(90deg, ${v.cor} 0%, #4fd1c5 100%)`,
-                                },
-                              }}
-                            />
-                          </Box>
-                        </HStack>
-                      </Box>
-                    );
-                  })
-                )}
+              {/* Gráfico de linhas: Meta × Realizado no ano */}
+              <Box bg="gray.900" borderRadius="xl" p="5" minW={0} overflow="hidden">
+                <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb="2">
+                  Meta × Realizado — {ano}
+                </Text>
+                <ApexChart key={`line-${vendedorId}-${ano}`} type="line" height={250} series={lineSeries} options={lineOptions} />
               </Box>
             </SimpleGrid>
 
@@ -473,7 +499,7 @@ export const PainelMetas = () => {
                   const m = i + 1;
                   const { meta, realizado } = dados[m];
                   const st = statusCasa(meta, realizado);
-                  const isAtual = m === mesAtual;
+                  const isAtual = m === mesSel;
                   return (
                     <Box
                       key={m}
@@ -483,6 +509,9 @@ export const PainelMetas = () => {
                       border="1px solid"
                       borderColor={isAtual ? 'orange.200' : 'gray.700'}
                       boxShadow={isAtual ? '0 0 0 2px rgba(254,128,38,.25)' : 'none'}
+                      cursor="pointer"
+                      onClick={() => setMesSel(m)}
+                      _hover={{ borderColor: 'orange.200' }}
                       position="relative"
                       overflow="hidden"
                       _after={{
@@ -527,32 +556,33 @@ export const PainelMetas = () => {
               </SimpleGrid>
             </Box>
 
-            {/* ── Corrida das metas ── */}
-            <Box bg="gray.900" borderRadius="xl" p="5">
-              <HStack spacing="2" mb="3">
-                <FiAward color="#fe8026" size={16} />
-                <Text fontSize="sm" fontWeight="bold" color="gray.200" textTransform="uppercase" letterSpacing="wider">
-                  Corrida das Metas — {MESES[mesAtual - 1]}/{ano}
-                </Text>
-              </HStack>
-              <TabuleiroTrilha
-                vendedores={progresso}
-                onVendedorClick={(id) => history.push(`/cadastro/meta/${id}?ano=${ano}`)}
-              />
-              {progresso.length > 0 && (
-                <HStack mt="4" spacing="4" flexWrap="wrap">
-                  {progresso.map((v) => (
-                    <HStack key={v.id} spacing="2">
-                      <AvatarBoneco cor={v.cor} nome={v.nome} size={28} />
-                      <Text fontSize="sm" color="gray.300">{v.nome}</Text>
-                      <Badge colorScheme="gray" fontSize="xs">{Math.round((v.casas / 12) * 100)}%</Badge>
-                    </HStack>
-                  ))}
-                </HStack>
-              )}
-            </Box>
+            {/* ── Corrida das metas (tabuleiro) ── */}
+            <CorridaTabuleiro
+              meses={MESES.map((_, i) => {
+                const mm = i + 1;
+                const d = dados[mm];
+                const pct = d.meta > 0 ? (d.realizado / d.meta) * 100 : 0;
+                return { mes: mm, meta: d.meta, realizado: d.realizado, pct };
+              })}
+              participantes={participantes}
+              mesSel={mesSel}
+              ano={ano}
+            />
 
-            {totais.meta === 0 && (
+            {/* ── Classificação + Destaques (embaixo, lado a lado) ── */}
+            <Flex mt="6" gap="4" align="flex-start" direction={['column', 'column', 'row']}>
+              <Box flex="2 1 420px" minW={0}>
+                <CorridaTabelaClassificacao
+                  participantes={participantes}
+                  onParticipanteClick={(id: string) => history.push(`/cadastro/meta/${id}?ano=${ano}`)}
+                />
+              </Box>
+              <Box flex="1 1 300px" minW={0}>
+                <CorridaDestaques participantes={participantes} />
+              </Box>
+            </Flex>
+
+            {totais.metaAno === 0 && (
               <Box mt="4" p="3" bg="rgba(254,128,38,0.08)" borderRadius="lg" border="1px solid" borderColor="orange.200">
                 <Text fontSize="sm" color="orange.200">
                   Ainda não há metas cadastradas para o período. Cadastre em "Metas".
