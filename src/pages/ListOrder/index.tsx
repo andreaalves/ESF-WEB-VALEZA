@@ -83,18 +83,25 @@ export default function ListOrder() {
         //   (o: any) => o.margemPedido <= params[0].percentualAprovacaoPedido
         // );
 
-        // Pedidos feitos pelo app têm "payload_enviado" preenchido (assinatura
-        // "INTEGRACAO APP ESF"). Damos prioridade a eles no topo da lista, pois
-        // são os que podem ter erro de integração e precisam de atenção.
+        // Prioridade na lista (mais alta primeiro):
+        //   2 = pedido novo do app aguardando aprovação (EM_ANALISE,
+        //       status_pedido=false, ainda sem payload/nº ERP) — precisa de ação;
+        //   1 = pedido já integrado pelo app ("payload_enviado" preenchido com a
+        //       assinatura "INTEGRACAO APP ESF"), pode ter erro e merece atenção;
+        //   0 = demais pedidos.
         // Dentro de cada grupo, ordena do mais recente para o mais antigo.
-        const feitoPeloApp = (o: any) => !!o?.payload_enviado;
+        const prioridade = (o: any) => {
+          if (String(o?.situacao || '').toUpperCase() === 'EM_ANALISE') return 2;
+          if (o?.payload_enviado) return 1;
+          return 0;
+        };
         const dataPedido = (o: any) =>
           DateTime.fromISO(o?.ultima_alteracao ?? o?.data_emissao).toMillis();
 
         const pedidosOrdenados = [...(response.data ?? [])].sort((a: any, b: any) => {
-          const appA = feitoPeloApp(a) ? 1 : 0;
-          const appB = feitoPeloApp(b) ? 1 : 0;
-          if (appA !== appB) return appB - appA; // pedidos do app primeiro
+          const pa = prioridade(a);
+          const pb = prioridade(b);
+          if (pa !== pb) return pb - pa; // maior prioridade primeiro
           return dataPedido(b) - dataPedido(a); // mais recente primeiro
         });
 
