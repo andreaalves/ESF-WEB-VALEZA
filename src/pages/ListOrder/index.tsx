@@ -83,7 +83,22 @@ export default function ListOrder() {
         //   (o: any) => o.margemPedido <= params[0].percentualAprovacaoPedido
         // );
 
-        setOrders(response.data);
+        // Pedidos feitos pelo app têm "payload_enviado" preenchido (assinatura
+        // "INTEGRACAO APP ESF"). Damos prioridade a eles no topo da lista, pois
+        // são os que podem ter erro de integração e precisam de atenção.
+        // Dentro de cada grupo, ordena do mais recente para o mais antigo.
+        const feitoPeloApp = (o: any) => !!o?.payload_enviado;
+        const dataPedido = (o: any) =>
+          DateTime.fromISO(o?.ultima_alteracao ?? o?.data_emissao).toMillis();
+
+        const pedidosOrdenados = [...(response.data ?? [])].sort((a: any, b: any) => {
+          const appA = feitoPeloApp(a) ? 1 : 0;
+          const appB = feitoPeloApp(b) ? 1 : 0;
+          if (appA !== appB) return appB - appA; // pedidos do app primeiro
+          return dataPedido(b) - dataPedido(a); // mais recente primeiro
+        });
+
+        setOrders(pedidosOrdenados);
       } catch (error) {}
 
       setIsLoading(false);
@@ -147,9 +162,9 @@ export default function ListOrder() {
     const orderFilter = orders.filter(
       (o) =>
         DateTime.fromISO(o.data_emissao).plus({ hours: 3 }) >=
-          DateTime.fromISO(initialDate) &&
+          DateTime.fromISO(initialDate).startOf('day') &&
         DateTime.fromISO(o.data_emissao).plus({ hours: 3 }) <=
-          DateTime.fromISO(finalDate)
+          DateTime.fromISO(finalDate).endOf('day')
       // || o.margemPedido <= params[0].percentualAprovacaoPedido
     );
     setOrderFilter(orderFilter);
