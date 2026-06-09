@@ -578,6 +578,9 @@ export const PainelMetas = () => {
                 <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb="3">
                   Performance Geral {MESES[mesSel - 1]}/{ano}
                 </Text>
+                <Text fontSize="xs" color="gray.500" textAlign="center" mt="-2" mb="2">
+                  Cálculo: pedidos a faturar ÷ meta do mês × 100
+                </Text>
                 <ApexChart
                   key={`gauge-${vendedorId}-${ano}-${mesSel}`}
                   type="radialBar"
