@@ -128,7 +128,7 @@ const Tabuleiro: React.FC<{
 
               {temMeta && (passado || atual) && (
                 <>
-                  <div style={{ marginTop: 1, color: '#7c8093', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Realizado</div>
+                  <div style={{ marginTop: 1, color: '#7c8093', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>A faturar</div>
                   <div style={{ color: '#e7e9f0', fontSize: 10, fontWeight: 700 }}>{brlK(m.realizado)}</div>
                 </>
               )}
@@ -227,6 +227,7 @@ export const CorridaTabelaClassificacao: React.FC<{
   onParticipanteClick?: (id: string) => void;
 }> = ({ participantes, onParticipanteClick }) => {
   const [ordenarPor, setOrdenarPor] = useState<'pct' | 'realizado' | 'nome'>('pct');
+  const gridCols = '44px minmax(210px, 2fr) minmax(100px, 1fr) minmax(96px, 1fr) 64px minmax(150px, 1.2fr) 44px';
 
   const ordenados = useMemo(() => {
     const arr = [...participantes];
@@ -253,7 +254,7 @@ export const CorridaTabelaClassificacao: React.FC<{
             style={{ background: '#1a1d28', color: '#e7e9f0', border: '1px solid #2a2e3a', borderRadius: 6, padding: '4px 8px', fontSize: 12 }}
           >
             <option value="pct">% da meta</option>
-            <option value="realizado">Realizado</option>
+            <option value="realizado">A faturar</option>
             <option value="nome">Nome</option>
           </select>
         </label>
@@ -266,14 +267,14 @@ export const CorridaTabelaClassificacao: React.FC<{
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {/* cabeçalho */}
-          <div style={{ display: 'flex', alignItems: 'center', color: '#7c8093', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, padding: '0 0 8px', borderBottom: '1px solid #1d2130' }}>
-            <span style={{ width: 52 }}>Pos</span>
-            <span style={{ flex: '2 1 0', minWidth: 0 }}>Participante</span>
-            <span style={{ flex: '1 1 0', textAlign: 'right' }}>Realizado</span>
-            <span style={{ flex: '1 1 0', textAlign: 'right' }}>Meta</span>
-            <span style={{ width: 64, textAlign: 'right' }}>% Meta</span>
-            <span style={{ flex: '1.4 1 0', textAlign: 'center' }}>Progresso</span>
-            <span style={{ width: 56, textAlign: 'right' }}> </span>
+          <div style={{ display: 'grid', gridTemplateColumns: gridCols, alignItems: 'center', columnGap: 12, color: '#7c8093', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, padding: '0 0 8px', borderBottom: '1px solid #1d2130' }}>
+            <span>Pos</span>
+            <span>Participante</span>
+            <span style={{ textAlign: 'right' }}>A faturar</span>
+            <span style={{ textAlign: 'right' }}>Meta</span>
+            <span style={{ textAlign: 'right' }}>% Meta</span>
+            <span style={{ textAlign: 'center' }}>Progresso</span>
+            <span> </span>
           </div>
           {ordenados.map((p, idx) => {
             const cor = corPct(p.pct);
@@ -283,27 +284,29 @@ export const CorridaTabelaClassificacao: React.FC<{
                 key={p.id}
                 onClick={onParticipanteClick ? () => onParticipanteClick(p.id) : undefined}
                 style={{
-                  display: 'flex',
+                  display: 'grid',
+                  gridTemplateColumns: gridCols,
                   alignItems: 'center',
+                  columnGap: 12,
                   padding: '10px 0',
                   borderBottom: '1px solid #1d2130',
                   cursor: onParticipanteClick ? 'pointer' : 'default',
                 }}
               >
-                <span style={{ width: 52, fontSize: idx < 3 ? 18 : 13, color: '#cfd2dc', fontWeight: 700 }}>{medalha(idx)}</span>
-                <span style={{ flex: '2 1 0', minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: idx < 3 ? 18 : 13, color: '#cfd2dc', fontWeight: 700 }}>{medalha(idx)}</span>
+                <span style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <AvatarBoneco cor={p.cor} nome={p.nome} size={26} />
                   <span style={{ color: '#e7e9f0', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.nome}</span>
                 </span>
-                <span style={{ flex: '1 1 0', textAlign: 'right', color: cor, fontSize: 13, fontWeight: 700 }}>{brl(p.realizado)}</span>
-                <span style={{ flex: '1 1 0', textAlign: 'right', color: '#9699B0', fontSize: 13 }}>{brl(p.meta)}</span>
-                <span style={{ width: 64, textAlign: 'right', color: cor, fontSize: 13, fontWeight: 800 }}>{Math.round(p.pct)}%</span>
-                <span style={{ flex: '1.4 1 0', padding: '0 10px' }}>
+                <span style={{ textAlign: 'right', color: cor, fontSize: 13, fontWeight: 700 }}>{brl(p.realizado)}</span>
+                <span style={{ textAlign: 'right', color: '#9699B0', fontSize: 13 }}>{brl(p.meta)}</span>
+                <span style={{ textAlign: 'right', color: cor, fontSize: 13, fontWeight: 800 }}>{Math.round(p.pct)}%</span>
+                <span style={{ padding: '0 10px' }}>
                   <span style={{ display: 'block', height: 8, borderRadius: 6, background: '#1d2130', overflow: 'hidden' }}>
                     <span style={{ display: 'block', height: '100%', width: `${Math.min(p.pct, 100)}%`, background: cor, borderRadius: 6 }} />
                   </span>
                 </span>
-                <span style={{ width: 56, textAlign: 'right', color: d.cor, fontSize: 12, fontWeight: 700 }}>{d.text}</span>
+                <span style={{ textAlign: 'right', color: d.cor, fontSize: 12, fontWeight: 700 }}>{d.text}</span>
               </div>
             );
           })}

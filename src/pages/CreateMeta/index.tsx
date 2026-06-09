@@ -22,6 +22,7 @@ import {
 } from '@chakra-ui/react';
 import { useEffect, useMemo, useState } from 'react';
 import { useHistory, useParams, useLocation } from 'react-router-dom';
+import ReactSelect from 'react-select';
 import * as FiIcons from 'react-icons/fi';
 import { Header } from '../../components/Header';
 import { SiderbarResponsive } from '../../components/SiderbarResponsive';
@@ -65,6 +66,9 @@ type MesMeta = { valorMeta: string; itens: ItemMeta[] };
 type Vendedor = { id: string; nome: string };
 type Categoria = { categoria_id: string; nome: string };
 type Produto = { produto_id: string; nome: string; categoria_id: string; codigo?: string };
+type SelectOption = { value: string; label: string };
+
+const COR_CAMPO_META = '#353646';
 
 // "1.000.000,00" -> 1000000
 function parseMoeda(str: string): number {
@@ -75,6 +79,55 @@ function parseMoeda(str: string): number {
 function metaVazia(): MesMeta {
   return { valorMeta: '', itens: [] };
 }
+
+const selectStyles = {
+  container: (base: any) => ({
+    ...base,
+    width: '100%',
+  }),
+  control: (base: any, state: any) => ({
+    ...base,
+    minHeight: 32,
+    backgroundColor: COR_CAMPO_META,
+    borderColor: state.isFocused ? '#fe8026' : 'transparent',
+    boxShadow: state.isFocused ? '0 0 0 1px #fe8026' : 'none',
+    color: '#fff',
+    fontSize: 14,
+    '&:hover': { borderColor: '#fe8026' },
+  }),
+  valueContainer: (base: any) => ({
+    ...base,
+    backgroundColor: COR_CAMPO_META,
+  }),
+  indicatorsContainer: (base: any) => ({
+    ...base,
+    backgroundColor: COR_CAMPO_META,
+  }),
+  menu: (base: any) => ({
+    ...base,
+    backgroundColor: COR_CAMPO_META,
+    border: '1px solid #4A5568',
+    zIndex: 20,
+  }),
+  menuList: (base: any) => ({
+    ...base,
+    maxHeight: 220,
+    backgroundColor: COR_CAMPO_META,
+  }),
+  option: (base: any, state: any) => ({
+    ...base,
+    backgroundColor: state.isSelected || state.isFocused ? '#fe8026' : COR_CAMPO_META,
+    color: '#fff',
+    fontSize: 14,
+    '&:active': { backgroundColor: '#fe8026' },
+  }),
+  singleValue: (base: any) => ({ ...base, color: '#fff' }),
+  input: (base: any) => ({ ...base, color: '#fff' }),
+  placeholder: (base: any) => ({ ...base, color: '#A0AEC0' }),
+  dropdownIndicator: (base: any) => ({ ...base, color: '#E2E8F0' }),
+  clearIndicator: (base: any) => ({ ...base, color: '#E2E8F0' }),
+  indicatorSeparator: (base: any) => ({ ...base, backgroundColor: 'transparent' }),
+};
 
 const anoAtual = new Date().getFullYear();
 const mesCorrente = new Date().getMonth() + 1; // mês atual (1..12)
@@ -182,6 +235,10 @@ export const CreateMeta = () => {
     () => mes.itens.reduce((soma, item) => soma + (Number(item.quantidade) || 0), 0),
     [mes]
   );
+  const opcoesCategorias = useMemo(
+    () => categorias.map((c) => ({ value: c.categoria_id, label: c.nome })),
+    [categorias]
+  );
   const valorMetaNum = parseMoeda(mes.valorMeta);
   const restante = valorMetaNum - totalDistribuido;
 
@@ -235,6 +292,13 @@ export const CreateMeta = () => {
 
   function produtosDoGrupo(categoriaId: string) {
     return produtos.filter((p) => p.categoria_id === categoriaId);
+  }
+
+  function opcoesProdutosDoGrupo(categoriaId: string): SelectOption[] {
+    return produtosDoGrupo(categoriaId).map((p) => ({
+      value: p.produto_id,
+      label: p.codigo ? `${p.codigo} - ${p.nome}` : p.nome,
+    }));
   }
 
   // Quantos meses já têm meta preenchida (pras "casas")
@@ -338,7 +402,7 @@ export const CreateMeta = () => {
             <Divider my="6" borderColor="gray.700" />
 
             {/* Vendedor + Ano */}
-            <HStack spacing="6" align="flex-end" flexWrap="wrap">
+            <HStack spacing="6" align="flex-start" flexWrap="wrap">
               <Box minW="280px" flex="1">
                 <Text mb="2" color="gray.300">
                   Vendedor(es)
@@ -355,6 +419,14 @@ export const CreateMeta = () => {
                       textAlign="left"
                       variant="outline"
                       colorScheme="gray"
+                      borderColor={vendedoresSel.length > 0 ? 'orange.200' : 'gray.600'}
+                      _hover={{
+                        borderColor: 'orange.200',
+                        bg: 'gray.700',
+                        color: 'gray.50',
+                      }}
+                      _active={{ bg: 'gray.700', color: 'gray.50' }}
+                      _focus={{ boxShadow: '0 0 0 1px #fe8026' }}
                       rightIcon={<FiIcons.FiChevronDown />}
                     >
                       {vendedoresSel.length === 0
@@ -397,6 +469,8 @@ export const CreateMeta = () => {
                             bg="gray.700"
                             _hover={{ bg: 'gray.600' }}
                             _focus={{ bg: 'gray.600' }}
+                            _checked={{ bg: 'orange.200', color: 'white' }}
+                            _active={{ bg: 'orange.200' }}
                           >
                             {v.nome}
                           </MenuItemOption>
@@ -536,51 +610,33 @@ export const CreateMeta = () => {
                       <Text mb="1" fontSize="xs" color="gray.400">
                         Grupo
                       </Text>
-                      <Select
-                        title="Grupo"
-                        aria-label="Grupo"
-                        size="sm"
-                        bgColor="gray.700"
-                        variant="filled"
-                        _hover={{ bgColor: 'gray.700' }}
+                      <ReactSelect
+                        inputId={`grupo-meta-${index}`}
                         placeholder="Selecione o grupo"
-                        value={item.categoriaId}
-                        onChange={(e: any) =>
-                          atualizarItem(index, 'categoriaId', e.target.value)
-                        }
-                      >
-                        {categorias.map((c) => (
-                          <option key={c.categoria_id} value={c.categoria_id}>
-                            {c.nome}
-                          </option>
-                        ))}
-                      </Select>
+                        options={opcoesCategorias}
+                        value={opcoesCategorias.find((c) => c.value === item.categoriaId) || null}
+                        onChange={(opcao: any) => atualizarItem(index, 'categoriaId', opcao?.value || '')}
+                        styles={selectStyles}
+                        isClearable
+                        noOptionsMessage={() => 'Nenhum grupo encontrado'}
+                      />
                     </Box>
 
                     <Box flex="1" minW="200px">
                       <Text mb="1" fontSize="xs" color="gray.400">
                         Produto (opcional)
                       </Text>
-                      <Select
-                        title="Produto"
-                        aria-label="Produto"
-                        size="sm"
-                        bgColor="gray.700"
-                        variant="filled"
-                        _hover={{ bgColor: 'gray.700' }}
+                      <ReactSelect
+                        inputId={`produto-meta-${index}`}
                         placeholder="Todo o grupo"
-                        value={item.produtoId}
                         isDisabled={!item.categoriaId}
-                        onChange={(e: any) =>
-                          atualizarItem(index, 'produtoId', e.target.value)
-                        }
-                      >
-                        {produtosDoGrupo(item.categoriaId).map((p) => (
-                          <option key={p.produto_id} value={p.produto_id}>
-                            {p.codigo ? `${p.codigo} - ${p.nome}` : p.nome}
-                          </option>
-                        ))}
-                      </Select>
+                        options={opcoesProdutosDoGrupo(item.categoriaId)}
+                        value={opcoesProdutosDoGrupo(item.categoriaId).find((p) => p.value === item.produtoId) || null}
+                        onChange={(opcao: any) => atualizarItem(index, 'produtoId', opcao?.value || '')}
+                        styles={selectStyles}
+                        isClearable
+                        noOptionsMessage={() => 'Nenhum produto encontrado'}
+                      />
                     </Box>
 
                     <Box w="160px">
@@ -589,9 +645,10 @@ export const CreateMeta = () => {
                       </Text>
                       <Input
                         size="sm"
-                        bgColor="gray.700"
-                        variant="filled"
-                        _hover={{ bgColor: 'gray.700' }}
+                        bg={COR_CAMPO_META}
+                        borderColor={COR_CAMPO_META}
+                        _hover={{ bg: COR_CAMPO_META, borderColor: COR_CAMPO_META }}
+                        _focus={{ bg: COR_CAMPO_META, borderColor: 'orange.200', boxShadow: '0 0 0 1px #fe8026' }}
                         placeholder="0,00"
                         value={item.valor}
                         onChange={(e: any) =>
@@ -606,9 +663,10 @@ export const CreateMeta = () => {
                       </Text>
                       <Input
                         size="sm"
-                        bgColor="gray.700"
-                        variant="filled"
-                        _hover={{ bgColor: 'gray.700' }}
+                        bg={COR_CAMPO_META}
+                        borderColor={COR_CAMPO_META}
+                        _hover={{ bg: COR_CAMPO_META, borderColor: COR_CAMPO_META }}
+                        _focus={{ bg: COR_CAMPO_META, borderColor: 'orange.200', boxShadow: '0 0 0 1px #fe8026' }}
                         placeholder="0"
                         inputMode="numeric"
                         value={item.quantidade}

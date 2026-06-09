@@ -11,7 +11,7 @@ import {
 } from '@chakra-ui/react';
 import { useEffect, useMemo, useState } from 'react';
 import Chart from 'react-apexcharts';
-import { FiDollarSign, FiTrendingUp, FiCalendar, FiUsers, FiRefreshCw, FiCheckCircle, FiTarget } from 'react-icons/fi';
+import { FiDollarSign, FiTrendingUp, FiCalendar, FiUsers, FiRefreshCw, FiCheckCircle, FiTarget, FiPackage } from 'react-icons/fi';
 import { Header } from '../../components/Header';
 import { SiderbarResponsive } from '../../components/SiderbarResponsive';
 import { Wapper } from '../../components/Wapper';
@@ -37,7 +37,14 @@ const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'O
 const PALETA = ['#fe8026', '#4fd1c5', '#63b3ed', '#f687b3', '#9f7aea', '#68d391', '#f6ad55', '#fc8181'];
 
 type Vendedor = { id: string; nome: string };
-type MesDado = { meta: number; realizado: number; aFaturar: number; faturado: number };
+type MesDado = {
+  meta: number;
+  realizado: number;
+  aFaturar: number;
+  faturado: number;
+  metaQuantidade: number;
+  realizadoQuantidade: number;
+};
 
 const anoAtual = new Date().getFullYear();
 const mesAtual = new Date().getMonth() + 1;
@@ -51,9 +58,77 @@ function brl(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+function numero(v: any) {
+  return Number(v ?? 0) || 0;
+}
+
+function qtd(v: number) {
+  return `${Math.round(v).toLocaleString('pt-BR')} un.`;
+}
+
+function itensPedido(pedido: any): any[] {
+  return pedido?.item_pedido || pedido?.itensPedido || pedido?.itens_pedido || pedido?.itens || [];
+}
+
+function idPedido(pedido: any) {
+  return pedido?.pedido_id || pedido?.id;
+}
+
+function quantidadeItensPedido(pedido: any) {
+  const itens = itensPedido(pedido);
+  if (itens.length > 0) {
+    return itens.reduce((soma, item) => soma + numero(item?.quantidade), 0);
+  }
+
+  return numero(
+    pedido?.realizado_quantidade ??
+      pedido?.quantidade_produtos ??
+      pedido?.quantidade_itens ??
+      pedido?.total_quantidade
+  );
+}
+
+function quantidadeMeta(meta: any) {
+  if (meta?.meta_quantidade != null) return numero(meta.meta_quantidade);
+  if (meta?.quantidade_meta != null) return numero(meta.quantidade_meta);
+  return (meta?.itens || []).reduce((soma: number, item: any) => soma + numero(item?.quantidade), 0);
+}
+
+async function carregarPedidoComItens(pedido: any) {
+  if (itensPedido(pedido).length > 0 || quantidadeItensPedido(pedido) > 0) return pedido;
+  const id = idPedido(pedido);
+  if (!id) return pedido;
+
+  try {
+    const res = await api.get(`/api-essencial/v1/pedidos/${id}`);
+    const detalhe = res.data?.data || res.data || {};
+    return {
+      ...pedido,
+      ...detalhe,
+      item_pedido:
+        detalhe.item_pedido ||
+        detalhe.itensPedido ||
+        detalhe.itens_pedido ||
+        detalhe.itens ||
+        pedido.item_pedido,
+    };
+  } catch {
+    return pedido;
+  }
+}
+
 function dadosVazios(): Record<number, MesDado> {
   const o: Record<number, MesDado> = {};
-  for (let m = 1; m <= 12; m++) o[m] = { meta: 0, realizado: 0, aFaturar: 0, faturado: 0 };
+  for (let m = 1; m <= 12; m++) {
+    o[m] = {
+      meta: 0,
+      realizado: 0,
+      aFaturar: 0,
+      faturado: 0,
+      metaQuantidade: 0,
+      realizadoQuantidade: 0,
+    };
+  }
   return o;
 }
 
@@ -90,14 +165,17 @@ export const PainelMetas = () => {
   async function carregarReal() {
     // META por colaborador/mês: GET /metas/:empresa
     const metaMap: Record<string, Record<number, number>> = {};
+    const metaQtdMap: Record<string, Record<number, number>> = {};
     try {
       const res = await api.get(`/api-essencial/v1/metas/${user.empresa.id}`, {
         params: { ano },
       });
       (res.data || []).forEach((m: any) => {
         if (!metaMap[m.colaborador_id]) metaMap[m.colaborador_id] = {};
+        if (!metaQtdMap[m.colaborador_id]) metaQtdMap[m.colaborador_id] = {};
         if (m.mes >= 1 && m.mes <= 12) {
           metaMap[m.colaborador_id][m.mes] = Number(m.valor_meta) || 0;
+          metaQtdMap[m.colaborador_id][m.mes] = quantidadeMeta(m);
         }
       });
     } catch {
@@ -105,28 +183,37 @@ export const PainelMetas = () => {
     }
 
     // REALIZADO por colaborador/mês, separando "a faturar" (sem nota) de "faturado" (com nota)
-    type RealMes = { aFaturar: number; faturado: number };
+    type RealMes = { aFaturar: number; faturado: number; quantidade: number };
     const realMap: Record<string, Record<number, RealMes>> = {};
     try {
       const res = await api.get(`/api-essencial/v1/pedidos/${user.empresa.id}/empresa`);
-      (res.data || []).forEach((p: any) => {
-        if (!p.data_emissao) return;
+      const pedidosValidos = (res.data || []).filter((p: any) => {
+        if (!p.data_emissao) return false;
         const d = new Date(p.data_emissao);
-        if (d.getFullYear() !== Number(ano)) return;
+        if (d.getFullYear() !== Number(ano)) return false;
         // Pedido excluído (soft delete) ou bloqueado não conta como realizado
-        if (p.excluido === true || p.status_pedido === false) return;
+        if (p.excluido === true || p.status_pedido === false) return false;
         const sit = String(p.situacao || '').toUpperCase();
         // EXCLUIDO_ERP = excluído no ERP; NOTA_CANCELADA = nota cancelada via webhook
-        if (['CANCELADO', 'EM_ANALISE', 'ERRO_INTEGRACAO', 'EXCLUIDO_ERP', 'NOTA_CANCELADA', 'BLOQUEADO'].includes(sit)) return;
+        if (['CANCELADO', 'EM_ANALISE', 'ERRO_INTEGRACAO', 'EXCLUIDO_ERP', 'NOTA_CANCELADA', 'BLOQUEADO'].includes(sit)) return false;
+        return true;
+      });
+      const pedidosComItens = await Promise.all(pedidosValidos.map(carregarPedidoComItens));
+
+      pedidosComItens.forEach((p: any) => {
+        const d = new Date(p.data_emissao);
+        const sit = String(p.situacao || '').toUpperCase();
         const cid = p.colaborador_id;
         const mes = d.getMonth() + 1;
         const valor = Number(p.valor_pedido) || 0;
+        const quantidade = quantidadeItensPedido(p);
         // Faturado = situação FATURADO ou já tem nota emitida (nota_erp). Senão, ainda é "a faturar".
         const ehFaturado = sit === 'FATURADO' || !!String(p.nota_erp || '').trim();
         if (!realMap[cid]) realMap[cid] = {};
-        if (!realMap[cid][mes]) realMap[cid][mes] = { aFaturar: 0, faturado: 0 };
+        if (!realMap[cid][mes]) realMap[cid][mes] = { aFaturar: 0, faturado: 0, quantidade: 0 };
         if (ehFaturado) realMap[cid][mes].faturado += valor;
         else realMap[cid][mes].aFaturar += valor;
+        realMap[cid][mes].quantidade += quantidade;
       });
     } catch {}
 
@@ -136,27 +223,40 @@ export const PainelMetas = () => {
       let meta = 0;
       let aFaturar = 0;
       let faturado = 0;
+      let metaQuantidade = 0;
+      let realizadoQuantidade = 0;
       if (vendedorId) {
         meta = metaMap[vendedorId]?.[m] || 0;
         aFaturar = realMap[vendedorId]?.[m]?.aFaturar || 0;
         faturado = realMap[vendedorId]?.[m]?.faturado || 0;
+        metaQuantidade = metaQtdMap[vendedorId]?.[m] || 0;
+        realizadoQuantidade = realMap[vendedorId]?.[m]?.quantidade || 0;
       } else {
         Object.keys(metaMap).forEach((cid) => (meta += metaMap[cid][m] || 0));
+        Object.keys(metaQtdMap).forEach((cid) => (metaQuantidade += metaQtdMap[cid][m] || 0));
         Object.keys(realMap).forEach((cid) => {
           aFaturar += realMap[cid][m]?.aFaturar || 0;
           faturado += realMap[cid][m]?.faturado || 0;
+          realizadoQuantidade += realMap[cid][m]?.quantidade || 0;
         });
       }
-      novo[m] = { meta, aFaturar, faturado, realizado: aFaturar + faturado };
+      novo[m] = {
+        meta,
+        aFaturar,
+        faturado,
+        realizado: aFaturar,
+        metaQuantidade,
+        realizadoQuantidade,
+      };
     }
     setDados(novo);
 
-    // participantes da corrida (mês selecionado): realizado, meta, % e crescimento vs mês anterior
+    // participantes da corrida (mês selecionado): pedidos a faturar, meta, % e crescimento vs mês anterior
     const realDoMes = (cid: string, m: number) => {
       const r = realMap[cid]?.[m];
-      return (r?.aFaturar || 0) + (r?.faturado || 0);
+      return r?.aFaturar || 0;
     };
-    // Só vendedores com meta ou realizado no mês participam da corrida
+    // Só vendedores com meta cadastrada no mês participam da corrida/classificação.
     const parts: ParticipanteCorrida[] = vendedores
       .map((v, i) => {
         const meta = metaMap[v.id]?.[mesSel] || 0;
@@ -166,7 +266,7 @@ export const PainelMetas = () => {
         const deltaPct = realAnt > 0 ? ((realizado - realAnt) / realAnt) * 100 : realizado > 0 ? null : 0;
         return { id: v.id, nome: v.nome, cor: PALETA[i % PALETA.length], realizado, meta, pct, deltaPct };
       })
-      .filter((p) => p.meta > 0 || p.realizado > 0);
+      .filter((p) => p.meta > 0);
     setParticipantes(parts);
   }
 
@@ -187,8 +287,22 @@ export const PainelMetas = () => {
     const realizado = dados[mesSel].realizado;
     const aFaturar = dados[mesSel].aFaturar;
     const faturado = dados[mesSel].faturado;
+    const metaQuantidade = dados[mesSel].metaQuantidade;
+    const realizadoQuantidade = dados[mesSel].realizadoQuantidade;
     const pct = meta > 0 ? (realizado / meta) * 100 : 0;
-    return { meta, realizado, aFaturar, faturado, casasBatidas, pct, metaAno };
+    const pctQuantidade = metaQuantidade > 0 ? (realizadoQuantidade / metaQuantidade) * 100 : 0;
+    return {
+      meta,
+      realizado,
+      aFaturar,
+      faturado,
+      metaQuantidade,
+      realizadoQuantidade,
+      casasBatidas,
+      pct,
+      pctQuantidade,
+      metaAno,
+    };
   }, [dados, mesSel]);
 
   const gaugeOptions: any = {
@@ -224,7 +338,7 @@ export const PainelMetas = () => {
   };
   const gaugeSeries = [Math.min(totais.pct, 100)];
 
-  // Linha: Meta × Realizado ao longo dos 12 meses do ano
+  // Linha: Meta × Pedidos a faturar ao longo dos 12 meses do ano
   const lineOptions: any = {
     chart: {
       type: 'line',
@@ -253,7 +367,7 @@ export const PainelMetas = () => {
   };
   const lineSeries = [
     { name: 'Meta', data: MESES.map((_, i) => dados[i + 1].meta) },
-    { name: 'Realizado', data: MESES.map((_, i) => dados[i + 1].realizado) },
+    { name: 'Pedidos a faturar', data: MESES.map((_, i) => dados[i + 1].realizado) },
   ];
 
   const kpiCards = [
@@ -265,7 +379,15 @@ export const PainelMetas = () => {
       bg: 'rgba(99,179,237,0.12)',
     },
     {
-      label: 'A Faturar',
+      label: 'Produtos vendidos',
+      value: qtd(totais.realizadoQuantidade),
+      detail: totais.metaQuantidade > 0 ? `Meta: ${qtd(totais.metaQuantidade)}` : 'Sem meta de qtd.',
+      icon: FiPackage,
+      color: '#4fd1c5',
+      bg: 'rgba(79,209,197,0.12)',
+    },
+    {
+      label: 'Pedidos a faturar',
       value: brl(totais.aFaturar),
       icon: FiTrendingUp,
       color: '#fe8026',
@@ -396,7 +518,7 @@ export const PainelMetas = () => {
             </HStack>
 
             {/* ── KPI Cards ── */}
-            <SimpleGrid columns={[2, 2, 4]} spacing="4" mb="6">
+            <SimpleGrid columns={[1, 2, 3, 5]} spacing="4" mb="6">
               {kpiCards.map((card) => {
                 const Icon = card.icon as any;
                 return (
@@ -426,6 +548,11 @@ export const PainelMetas = () => {
                         <Text fontSize={['lg', 'xl', '2xl']} fontWeight="800" color="white" lineHeight="1.1">
                           {card.value}
                         </Text>
+                        {'detail' in card && card.detail && (
+                          <Text fontSize="xs" color="gray.500" mt="1" noOfLines={1}>
+                            {card.detail}
+                          </Text>
+                        )}
                       </Box>
                       <Box
                         w="42px"
@@ -466,8 +593,16 @@ export const PainelMetas = () => {
                   </Box>
                   <Box w="1px" h="30px" bg="gray.700" />
                   <Box textAlign="center">
-                    <Text fontSize="xs" color="gray.500">Realizado</Text>
+                    <Text fontSize="xs" color="gray.500">Pedidos a faturar</Text>
                     <Text fontSize="sm" fontWeight="bold" color="orange.200">{brl(totais.realizado)}</Text>
+                  </Box>
+                  <Box w="1px" h="30px" bg="gray.700" />
+                  <Box textAlign="center">
+                    <Text fontSize="xs" color="gray.500">Qtd vendida</Text>
+                    <Text fontSize="sm" fontWeight="bold" color="teal.200">
+                      {qtd(totais.realizadoQuantidade)}
+                      {totais.metaQuantidade > 0 ? ` / ${qtd(totais.metaQuantidade)}` : ''}
+                    </Text>
                   </Box>
                   <Box w="1px" h="30px" bg="gray.700" />
                   <Box textAlign="center">
@@ -477,10 +612,10 @@ export const PainelMetas = () => {
                 </HStack>
               </Box>
 
-              {/* Gráfico de linhas: Meta × Realizado no ano */}
+              {/* Gráfico de linhas: Meta × Pedidos a faturar no ano */}
               <Box bg="gray.900" borderRadius="xl" p="5" minW={0} overflow="hidden">
                 <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb="2">
-                  Meta × Realizado — {ano}
+                  Meta × Pedidos a faturar — {ano}
                 </Text>
                 <ApexChart key={`line-${vendedorId}-${ano}`} type="line" height={250} series={lineSeries} options={lineOptions} />
               </Box>
@@ -497,7 +632,7 @@ export const PainelMetas = () => {
               <SimpleGrid columns={[2, 3, 4, 6]} spacing="3">
                 {MESES.map((nome, i) => {
                   const m = i + 1;
-                  const { meta, realizado } = dados[m];
+                  const { meta, realizado, metaQuantidade, realizadoQuantidade } = dados[m];
                   const st = statusCasa(meta, realizado);
                   const isAtual = m === mesSel;
                   return (
@@ -550,6 +685,12 @@ export const PainelMetas = () => {
                       <Text fontSize="10px" color="gray.600" noOfLines={1}>
                         {meta > 0 ? `de ${brl(meta)}` : ''}
                       </Text>
+                      {(metaQuantidade > 0 || realizadoQuantidade > 0) && (
+                        <Text fontSize="10px" color="teal.200" noOfLines={1} mt="1">
+                          Qtd: {qtd(realizadoQuantidade)}
+                          {metaQuantidade > 0 ? ` / ${qtd(metaQuantidade)}` : ''}
+                        </Text>
+                      )}
                     </Box>
                   );
                 })}
@@ -571,13 +712,13 @@ export const PainelMetas = () => {
 
             {/* ── Classificação + Destaques (embaixo, lado a lado) ── */}
             <Flex mt="6" gap="4" align="flex-start" direction={['column', 'column', 'row']}>
-              <Box flex="2 1 420px" minW={0}>
+              <Box flex="3 1 560px" minW={0}>
                 <CorridaTabelaClassificacao
                   participantes={participantes}
                   onParticipanteClick={(id: string) => history.push(`/cadastro/meta/${id}?ano=${ano}`)}
                 />
               </Box>
-              <Box flex="1 1 300px" minW={0}>
+              <Box flex="1 1 280px" minW={0}>
                 <CorridaDestaques participantes={participantes} />
               </Box>
             </Flex>
