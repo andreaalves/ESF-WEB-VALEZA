@@ -4,7 +4,6 @@ import {
   Text as TextBase,
   Input as InputBase,
   IconButton as IconButtonBase,
-  Avatar as AvatarBase,
   Spinner as SpinnerBase,
   VStack as VStackBase,
 } from '@chakra-ui/react';
@@ -12,6 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as FiIcons from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../service/api';
+import logoArvore from '../../assets/logo-arvore.png';
 
 // Cast Chakra components to bypass TS2590 ("union type too complex").
 const Box = BoxBase as React.ComponentType<any>;
@@ -19,7 +19,6 @@ const Flex = FlexBase as React.ComponentType<any>;
 const Text = TextBase as React.ComponentType<any>;
 const Input = InputBase as React.ComponentType<any>;
 const IconButton = IconButtonBase as React.ComponentType<any>;
-const Avatar = AvatarBase as React.ComponentType<any>;
 const Spinner = SpinnerBase as React.ComponentType<any>;
 const VStack = VStackBase as React.ComponentType<any>;
 
@@ -126,13 +125,26 @@ export function ChatAssistant() {
             p="4"
             bgGradient={`linear(to-r, ${ORANGE}, #d9641a)`}
           >
-            <Avatar
-              size="sm"
-              name={primeiroNome}
-              bg="whiteAlpha.300"
-              color="white"
-              icon={<FiIcons.FiHeadphones size={18} />}
-            />
+            <Box
+              width="36px"
+              height="36px"
+              borderRadius="full"
+              bg="white"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              overflow="hidden"
+              flexShrink={0}
+            >
+              <Box
+                as="img"
+                src={logoArvore}
+                alt="Essencial"
+                width="28px"
+                height="28px"
+                objectFit="contain"
+              />
+            </Box>
             <Box ml="3" flex="1">
               <Text fontWeight="bold" color="white" lineHeight="1.1">
                 Assistente ESF
