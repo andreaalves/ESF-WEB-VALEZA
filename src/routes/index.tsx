@@ -39,6 +39,7 @@ import AgendamentoDetail from '../pages/AgendamentoDetail';
 import RastreamentoEntrega from '../pages/RastreamentoEntrega';
 import Apontamento from '../pages/Apontamento';
 import Entregas from '../pages/Entregas';
+import { ChatAssistant } from '../components/ChatAssistant';
 
 export const Routes = () => {
   return (
@@ -267,6 +268,9 @@ export const Routes = () => {
 
         <Route exact path="/teste" component={PagesTest} isPrivate />
       </Switch>
+
+      {/* Assistente flutuante — visível em todas as páginas (exceto login). */}
+      <ChatAssistant />
     </Router>
   );
 };
