@@ -84,15 +84,21 @@ export default function ListOrder() {
         // );
 
         // Prioridade na lista (mais alta primeiro):
-        //   2 = pedido novo do app aguardando aprovação (EM_ANALISE,
-        //       status_pedido=false, ainda sem payload/nº ERP) — precisa de ação;
-        //   1 = pedido já integrado pelo app ("payload_enviado" preenchido com a
-        //       assinatura "INTEGRACAO APP ESF"), pode ter erro e merece atenção;
-        //   0 = demais pedidos.
+        //   3 = pedido do app aguardando aprovação (EM_ANALISE) — precisa de ação;
+        //   2 = qualquer pedido feito pelo app pelos vendedores (tem "payload_enviado"
+        //       com a assinatura "INTEGRACAO APP ESF" OU "criado_por_id" preenchido).
+        //       O backend nem sempre devolve payload_enviado (vem nulo), então usamos
+        //       criado_por_id como sinal adicional — esse campo só existe em pedido do app;
+        //   1 = em análise que não veio do app (raro);
+        //   0 = demais pedidos (vindos do TOTVS).
         // Dentro de cada grupo, ordena do mais recente para o mais antigo.
+        const feitoPeloApp = (o: any) => !!o?.payload_enviado || !!o?.criado_por_id;
+        const emAnalise = (o: any) =>
+          String(o?.situacao || '').toUpperCase() === 'EM_ANALISE';
         const prioridade = (o: any) => {
-          if (String(o?.situacao || '').toUpperCase() === 'EM_ANALISE') return 2;
-          if (o?.payload_enviado) return 1;
+          if (feitoPeloApp(o) && emAnalise(o)) return 3;
+          if (feitoPeloApp(o)) return 2;
+          if (emAnalise(o)) return 1;
           return 0;
         };
         const dataPedido = (o: any) =>
