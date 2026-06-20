@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { FiCheck, FiStar, FiTrendingUp, FiTarget, FiAward } from 'react-icons/fi';
-import { AvatarBoneco } from './TabuleiroTrilha';
+import { FiStar, FiTrendingUp, FiTarget, FiAward } from 'react-icons/fi';
+import { AvatarBoneco, VendedorProgresso } from './TabuleiroTrilha';
+import { TrilhaIlhas } from './TrilhaIlhas';
 
 export type ParticipanteCorrida = {
   id: string;
@@ -51,173 +52,27 @@ function calcDestaques(participantes: ParticipanteCorrida[]) {
   return { maior: porPct[0], crescimento: maiorCrescimento, foco: porPct[porPct.length - 1] };
 }
 
-// ── Tabuleiro (PARTIDA → meses → CHEGADA) ──────────────────────────────────
-const Tabuleiro: React.FC<{
-  meses: MesCorrida[];
-  participantes: ParticipanteCorrida[];
-  mesSel: number;
-}> = ({ meses, participantes, mesSel }) => {
-  const celula = (extra?: React.CSSProperties): React.CSSProperties => ({
-    flex: '1 1 0',
-    minWidth: 0,
-    minHeight: 150,
-    borderRadius: 12,
-    background: '#1a202c',
-    border: '1px solid #2a2e3a',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 2,
-    padding: '8px 3px',
-    position: 'relative',
-    ...extra,
-  });
-
-  const portal = (cor: string): React.CSSProperties =>
-    celula({ background: `linear-gradient(160deg, ${cor} 0%, #1a202c 130%)`, border: `1px solid ${cor}`, justifyContent: 'center' });
-
-  return (
-    <div style={{ width: '100%', overflowX: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'stretch', gap: 4 }}>
-        {/* PARTIDA */}
-        <div style={portal('#2f7d4f')}>
-          <div style={{ fontSize: 18 }}>🚩</div>
-          <div style={{ color: '#eafaf0', fontWeight: 900, fontSize: 10, letterSpacing: 1, marginBottom: 4 }}>PARTIDA</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
-            {participantes.slice(0, 8).map((p) => (
-              <AvatarBoneco key={p.id} cor={p.cor} nome={p.nome} size={22} title={p.nome} />
-            ))}
-          </div>
-        </div>
-
-        {/* 12 meses */}
-        {meses.map((m) => {
-          const passado = m.mes < mesSel;
-          const atual = m.mes === mesSel;
-          const temMeta = m.meta > 0;
-          const cor = temMeta ? corPct(m.pct) : '#4a5568';
-          return (
-            <div
-              key={m.mes}
-              style={celula({
-                border: atual ? '2px solid #fe8026' : '1px solid #2a2e3a',
-                boxShadow: atual ? '0 0 0 3px rgba(254,128,38,.18)' : 'none',
-              })}
-            >
-              {/* número do mês */}
-              <div
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: '50%',
-                  background: atual ? '#fe8026' : '#2a2e3a',
-                  color: '#fff',
-                  fontSize: 10,
-                  fontWeight: 900,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {m.mes}
-              </div>
-              <div style={{ color: atual ? '#fe8026' : '#cfd2dc', fontWeight: 900, fontSize: 11 }}>{MESES[m.mes - 1]}</div>
-
-              <div style={{ marginTop: 2, color: '#7c8093', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Meta</div>
-              <div style={{ color: '#e7e9f0', fontSize: 10, fontWeight: 700 }}>{temMeta ? brlK(m.meta) : '—'}</div>
-
-              {temMeta && (passado || atual) && (
-                <>
-                  <div style={{ marginTop: 1, color: '#7c8093', fontSize: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>A faturar</div>
-                  <div style={{ color: '#e7e9f0', fontSize: 10, fontWeight: 700 }}>{brlK(m.realizado)}</div>
-                </>
-              )}
-
-              <div style={{ marginTop: 'auto', color: temMeta ? cor : '#5b5f70', fontWeight: 900, fontSize: 13 }}>
-                {temMeta ? `${Math.round(m.pct)}%` : '0%'}
-              </div>
-
-              {/* status no rodapé */}
-              <div style={{ height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {passado && temMeta ? (
-                  <span
-                    style={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
-                      background: corPct(m.pct),
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <FiCheck size={11} color="#0c1018" />
-                  </span>
-                ) : atual ? (
-                  <span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid #fe8026', boxShadow: '0 0 0 3px rgba(254,128,38,.2)' }} />
-                ) : null}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* CHEGADA */}
-        <div style={portal('#9c3d0f')}>
-          <div style={{ fontSize: 18 }}>🏁</div>
-          <div style={{ color: '#fbe9dd', fontWeight: 900, fontSize: 10, letterSpacing: 1 }}>CHEGADA</div>
-          <div style={{ marginTop: 4 }}>
-            <FiAward size={18} color="#ffd9a8" />
-          </div>
-        </div>
-      </div>
-
-      {/* trilha de progresso */}
-      <div style={{ display: 'flex', alignItems: 'center', padding: '12px 6% 2px' }}>
-        {meses.map((m, i) => {
-          const feito = m.mes < mesSel;
-          const atual = m.mes === mesSel;
-          return (
-            <React.Fragment key={m.mes}>
-              {i > 0 && <div style={{ flex: '1 1 0', height: 3, background: m.mes <= mesSel ? '#48bb78' : '#2a2e3a' }} />}
-              <span
-                style={{
-                  width: feito ? 16 : 14,
-                  height: feito ? 16 : 14,
-                  borderRadius: '50%',
-                  flexShrink: 0,
-                  background: feito ? '#48bb78' : atual ? '#fe8026' : '#1a1d28',
-                  border: atual ? '2px solid #fe8026' : feito ? 'none' : '2px solid #2a2e3a',
-                  boxShadow: atual ? '0 0 0 4px rgba(254,128,38,.18)' : 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {feito && <FiCheck size={10} color="#0c1018" />}
-              </span>
-            </React.Fragment>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
 // ── Tabuleiro + trilha (seção "Corrida das Metas") ─────────────────────────
 export const CorridaTabuleiro: React.FC<{
   meses: MesCorrida[];
-  participantes: ParticipanteCorrida[];
+  progresso: VendedorProgresso[];
   mesSel: number;
   ano: number;
-}> = ({ meses, participantes, mesSel, ano }) => (
+  onVendedorClick?: (id: string) => void;
+}> = ({ meses, progresso, mesSel, ano, onVendedorClick }) => (
   <div style={{ ...card, padding: 14 }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
       <FiAward size={16} color="#fe8026" />
       <span style={{ color: '#e7e9f0', fontWeight: 800, fontSize: 13, textTransform: 'uppercase', letterSpacing: 1 }}>
-        Corrida das Metas — {MESES[mesSel - 1]}/{ano}
+        Jornada das Metas — {ano}
       </span>
     </div>
-    <Tabuleiro meses={meses} participantes={participantes} mesSel={mesSel} />
+    <TrilhaIlhas
+      meses={meses.map((m) => ({ mes: m.mes, meta: m.meta, realizado: m.realizado, pct: m.pct }))}
+      vendedores={progresso}
+      mesSel={mesSel}
+      onVendedorClick={onVendedorClick}
+    />
   </div>
 );
 

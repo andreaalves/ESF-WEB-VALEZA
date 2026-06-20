@@ -19,6 +19,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../service/api';
 import { useHistory } from 'react-router-dom';
 import { CorridaTabuleiro, CorridaTabelaClassificacao, CorridaDestaques, ParticipanteCorrida } from './CorridaMetas';
+import { VendedorProgresso } from './TabuleiroTrilha';
 
 // Chakra v1 + TS strict estoura TS2590; cast para any contorna.
 const Flex = FlexBase as any;
@@ -151,6 +152,7 @@ export const PainelMetas = () => {
   const [mesSel, setMesSel] = useState(mesAtual);
   const [dados, setDados] = useState<Record<number, MesDado>>(dadosVazios());
   const [participantes, setParticipantes] = useState<ParticipanteCorrida[]>([]);
+  const [progresso, setProgresso] = useState<VendedorProgresso[]>([]);
 
   useEffect(() => {
     api
@@ -268,6 +270,20 @@ export const PainelMetas = () => {
       })
       .filter((p) => p.meta > 0);
     setParticipantes(parts);
+
+    // Progresso na trilha: "casas" = nº de metas mensais já batidas (realizado >= meta).
+    const prog: VendedorProgresso[] = vendedores
+      .map((v, i) => {
+        let casas = 0;
+        for (let m = 1; m <= 12; m++) {
+          const meta = metaMap[v.id]?.[m] || 0;
+          if (meta > 0 && realDoMes(v.id, m) >= meta) casas++;
+        }
+        return { id: v.id, nome: v.nome, casas, cor: PALETA[i % PALETA.length] };
+      })
+      // só entra na trilha quem tem alguma meta no ano
+      .filter((v) => !!metaMap[v.id]);
+    setProgresso(prog);
   }
 
   useEffect(() => {
@@ -700,7 +716,7 @@ export const PainelMetas = () => {
               </SimpleGrid>
             </Box>
 
-            {/* ── Corrida das metas (tabuleiro) ── */}
+            {/* ── Jornada das metas (trilha de ilhas) ── */}
             <CorridaTabuleiro
               meses={MESES.map((_, i) => {
                 const mm = i + 1;
@@ -708,9 +724,10 @@ export const PainelMetas = () => {
                 const pct = d.meta > 0 ? (d.realizado / d.meta) * 100 : 0;
                 return { mes: mm, meta: d.meta, realizado: d.realizado, pct };
               })}
-              participantes={participantes}
+              progresso={progresso}
               mesSel={mesSel}
               ano={ano}
+              onVendedorClick={(id: string) => history.push(`/cadastro/meta/${id}?ano=${ano}`)}
             />
 
             {/* ── Classificação + Destaques (embaixo, lado a lado) ── */}
