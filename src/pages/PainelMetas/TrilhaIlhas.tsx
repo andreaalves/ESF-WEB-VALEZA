@@ -315,6 +315,7 @@ export const TrilhaIlhas: React.FC<{
                 <NoMetal cx={cx} cy={cy} d={r} passado={passado} />
               )}
 
+
               {temMeta && !atual && (
                 <div style={{ position: 'absolute', left: cx + r / 2 - 18, top: cy - r / 2 - 6, background: pct >= 100 ? VERDE : corPct(pct), color: '#fff', fontWeight: 900, fontSize: 11, padding: '2px 8px', borderRadius: 8, boxShadow: '0 2px 6px rgba(0,0,0,0.6)', zIndex: 11 }}>
                   {Math.round(pct)}%

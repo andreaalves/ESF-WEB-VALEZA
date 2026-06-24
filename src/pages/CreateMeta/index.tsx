@@ -146,8 +146,10 @@ export const CreateMeta = () => {
   const [vendedoresSel, setVendedoresSel] = useState<string[]>([]);
   const [ano, setAno] = useState(anoAtual);
   // Meses selecionados (clicar alterna). A meta editada vale para todos eles.
+  // Começa VAZIO p/ editar só o mês em foco — evita gravar o valor em vários
+  // meses sem querer (a multi-seleção é opcional, clicando os meses desejados).
   // mesFoco é o mês cujos dados estão sendo exibidos no painel de edição.
-  const [mesesSel, setMesesSel] = useState<number[]>([mesCorrente]);
+  const [mesesSel, setMesesSel] = useState<number[]>([]);
   const [mesFoco, setMesFoco] = useState(mesCorrente);
   const [salvando, setSalvando] = useState(false);
 
@@ -191,7 +193,7 @@ export const CreateMeta = () => {
     const anoQ = Number(q.get('ano'));
     const anoSel = anoQ || anoAtual;
     if (anoQ) setAno(anoQ);
-    setMesesSel([mesCorrente]);
+    setMesesSel([]);
     setMesFoco(mesCorrente);
 
     api
