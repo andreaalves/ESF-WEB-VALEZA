@@ -244,7 +244,10 @@ export const PainelMetas = () => {
         meta,
         aFaturar,
         faturado,
-        realizado: aFaturar,
+        // Realizado = tudo que o vendedor vendeu no mês (a faturar + já faturado).
+        // Antes contava só "a faturar", então quando o pedido era faturado a
+        // performance caía pra 0%. Mesma regra do realDoMes da corrida.
+        realizado: aFaturar + faturado,
         metaQuantidade,
         realizadoQuantidade,
       };
@@ -355,7 +358,7 @@ export const PainelMetas = () => {
   };
   const gaugeSeries = [Math.min(totais.pct, 100)];
 
-  // Linha: Meta × Pedidos a faturar ao longo dos 12 meses do ano
+  // Linha: Meta × Realizado (a faturar + faturado) ao longo dos 12 meses do ano
   const lineOptions: any = {
     chart: {
       type: 'line',
@@ -384,7 +387,7 @@ export const PainelMetas = () => {
   };
   const lineSeries = [
     { name: 'Meta', data: MESES.map((_, i) => dados[i + 1].meta) },
-    { name: 'Pedidos a faturar', data: MESES.map((_, i) => dados[i + 1].realizado) },
+    { name: 'Realizado', data: MESES.map((_, i) => dados[i + 1].realizado) },
   ];
 
   const kpiCards = [
@@ -596,7 +599,7 @@ export const PainelMetas = () => {
                   Performance Geral {MESES[mesSel - 1]}/{ano}
                 </Text>
                 <Text fontSize="xs" color="gray.500" textAlign="center" mt="-2" mb="2">
-                  Cálculo: pedidos a faturar ÷ meta do mês × 100
+                  Cálculo: realizado (a faturar + faturado) ÷ meta do mês × 100
                 </Text>
                 <ApexChart
                   key={`gauge-${vendedorId}-${ano}-${mesSel}`}
@@ -613,7 +616,7 @@ export const PainelMetas = () => {
                   </Box>
                   <Box w="1px" h="30px" bg="gray.700" />
                   <Box textAlign="center">
-                    <Text fontSize="xs" color="gray.500">Pedidos a faturar</Text>
+                    <Text fontSize="xs" color="gray.500">Realizado</Text>
                     <Text fontSize="sm" fontWeight="bold" color="orange.200">{brl(totais.realizado)}</Text>
                   </Box>
                   <Box w="1px" h="30px" bg="gray.700" />
@@ -632,10 +635,10 @@ export const PainelMetas = () => {
                 </HStack>
               </Box>
 
-              {/* Gráfico de linhas: Meta × Pedidos a faturar no ano */}
+              {/* Gráfico de linhas: Meta × Realizado no ano */}
               <Box bg="gray.900" borderRadius="xl" p="5" minW={0} overflow="hidden">
                 <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb="2">
-                  Meta × Pedidos a faturar — {ano}
+                  Meta × Realizado — {ano}
                 </Text>
                 <ApexChart key={`line-${vendedorId}-${ano}`} type="line" height={250} series={lineSeries} options={lineOptions} />
               </Box>
