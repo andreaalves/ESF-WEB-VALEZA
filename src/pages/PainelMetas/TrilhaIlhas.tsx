@@ -34,7 +34,11 @@ const RC = 48;         // raio das curvas em U
 const MAX_GAP = 440;   // trecho de linha entre casas (mais espaço p/ os peões)
 
 // ── Nó metálico (dial) ─────────────────────────────────────────────────────
-const NoMetal: React.FC<{ cx: number; cy: number; d: number; passado?: boolean }> = ({ cx, cy, d, passado }) => (
+// Quando o mês tem meta cadastrada (temMeta), mostra a % no miolo do nó — igual
+// ao mês atual — em vez do botão metálico; a cor segue corPct (verde ≥100%).
+const NoMetal: React.FC<{
+  cx: number; cy: number; d: number; passado?: boolean; temMeta?: boolean; pct?: number;
+}> = ({ cx, cy, d, passado, temMeta, pct = 0 }) => (
   <div
     style={{
       position: 'absolute', left: cx - d / 2, top: cy - d / 2, width: d, height: d, borderRadius: '50%',
@@ -54,7 +58,13 @@ const NoMetal: React.FC<{ cx: number; cy: number; d: number; passado?: boolean }
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
-      <div style={{ width: d * 0.17, height: d * 0.17, borderRadius: '50%', background: 'radial-gradient(circle at 40% 35%, #cdd4e0, #717a88)', boxShadow: '0 1px 2px rgba(0,0,0,0.7)' }} />
+      {temMeta ? (
+        <span style={{ color: corPct(pct), fontWeight: 900, fontSize: d * 0.19, lineHeight: 1, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}>
+          {Math.round(pct)}%
+        </span>
+      ) : (
+        <div style={{ width: d * 0.17, height: d * 0.17, borderRadius: '50%', background: 'radial-gradient(circle at 40% 35%, #cdd4e0, #717a88)', boxShadow: '0 1px 2px rgba(0,0,0,0.7)' }} />
+      )}
     </div>
   </div>
 );
@@ -312,14 +322,7 @@ export const TrilhaIlhas: React.FC<{
               {atual ? (
                 <NoAtual cx={cx} cy={cy} pct={pct} meta={info?.meta || 0} realizado={info?.realizado || 0} />
               ) : (
-                <NoMetal cx={cx} cy={cy} d={r} passado={passado} />
-              )}
-
-
-              {temMeta && !atual && (
-                <div style={{ position: 'absolute', left: cx + r / 2 - 18, top: cy - r / 2 - 6, background: pct >= 100 ? VERDE : corPct(pct), color: '#fff', fontWeight: 900, fontSize: 11, padding: '2px 8px', borderRadius: 8, boxShadow: '0 2px 6px rgba(0,0,0,0.6)', zIndex: 11 }}>
-                  {Math.round(pct)}%
-                </div>
+                <NoMetal cx={cx} cy={cy} d={r} passado={passado} temMeta={temMeta} pct={pct} />
               )}
 
               {temAlgumaMeta && !temMeta && !atual && (
