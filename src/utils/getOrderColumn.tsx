@@ -29,6 +29,11 @@ export function getColumn(
       ),
     },
     {
+      Header: 'Pedido',
+      accessor: 'pedido_erp',
+      Cell: ({ row }: any) => <span>{row.original.pedido_erp || '-'}</span>,
+    },
+    {
       Header: 'Cliente',
       accessor: 'clientes.razao_social',
     },

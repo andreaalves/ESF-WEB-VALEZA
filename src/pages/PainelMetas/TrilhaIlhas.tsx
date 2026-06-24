@@ -12,17 +12,13 @@ const NOMES = [
   'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO',
 ];
 const LARANJA = '#fe8026';
+const VERDE = '#48bb78';
 
 function corPct(pct: number) {
-  if (pct >= 85) return '#48bb78';
-  if (pct >= 60) return '#ed8936';
-  return '#f56565';
+  if (pct >= 100) return VERDE; // bateu/passou a meta
+  if (pct >= 60) return '#ed8936'; // no caminho
+  return '#f56565'; // longe
 }
-function brlK(v: number) {
-  if (v >= 1000) return `R$ ${(v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}K`;
-  return `R$ ${Math.round(v)}`;
-}
-
 // geometria
 const NODE = 92;       // diâmetro do nó normal
 const NODE_CUR = 128;  // diâmetro do nó do mês atual
@@ -61,6 +57,11 @@ const NoMetal: React.FC<{ cx: number; cy: number; d: number; passado?: boolean }
 // ── Nó do mês atual (anel laranja brilhante) ───────────────────────────────
 const NoAtual: React.FC<{ cx: number; cy: number; pct: number }> = ({ cx, cy, pct }) => {
   const d = NODE_CUR;
+  // Bateu a meta no mês atual → anel interno + número verdes; o anel externo
+  // (raio maior) continua laranja, igual aos demais meses.
+  const bateu = pct >= 100;
+  const cor = bateu ? VERDE : LARANJA;
+  const glowCor = bateu ? 'rgba(72,187,120,' : 'rgba(254,128,38,';
   return (
     <div
       style={{
@@ -74,11 +75,11 @@ const NoAtual: React.FC<{ cx: number; cy: number; pct: number }> = ({ cx, cy, pc
       <div
         style={{
           position: 'absolute', width: d * 0.82, height: d * 0.82, borderRadius: '50%',
-          border: `6px solid ${LARANJA}`,
-          boxShadow: `0 0 12px ${LARANJA}, inset 0 0 10px rgba(254,128,38,0.7)`,
+          border: `6px solid ${cor}`,
+          boxShadow: `0 0 12px ${cor}, inset 0 0 10px ${glowCor}0.7)`,
         }}
       />
-      <span style={{ color: LARANJA, fontWeight: 900, fontSize: 26, textShadow: '0 0 10px rgba(254,128,38,0.8)' }}>
+      <span style={{ color: cor, fontWeight: 900, fontSize: 26, textShadow: `0 0 10px ${glowCor}0.8)` }}>
         {Math.round(pct)}%
       </span>
     </div>
@@ -215,8 +216,8 @@ export const TrilhaIlhas: React.FC<{
 
               {atual ? <NoAtual cx={cx} cy={cy} pct={pct} /> : <NoMetal cx={cx} cy={cy} d={r} passado={passado} />}
 
-              {temMeta && (
-                <div style={{ position: 'absolute', left: cx + r / 2 - 18, top: cy - r / 2 - 6, background: atual ? LARANJA : corPct(pct), color: '#fff', fontWeight: 900, fontSize: 11, padding: '2px 8px', borderRadius: 8, boxShadow: '0 2px 6px rgba(0,0,0,0.6)', zIndex: 11 }}>
+              {temMeta && !atual && (
+                <div style={{ position: 'absolute', left: cx + r / 2 - 18, top: cy - r / 2 - 6, background: pct >= 100 ? VERDE : corPct(pct), color: '#fff', fontWeight: 900, fontSize: 11, padding: '2px 8px', borderRadius: 8, boxShadow: '0 2px 6px rgba(0,0,0,0.6)', zIndex: 11 }}>
                   {Math.round(pct)}%
                 </div>
               )}
@@ -227,18 +228,11 @@ export const TrilhaIlhas: React.FC<{
                 </div>
               )}
 
-              <div style={{ position: 'absolute', top: cy + r / 2 + (ps.length > 0 ? 40 : 8), left: cx - 90, width: 180, textAlign: 'center', zIndex: 10, lineHeight: 1.3 }}>
-                {temMeta ? (
-                  <>
-                    <div style={{ color: '#cdd3df', fontSize: 12, fontWeight: 700 }}>
-                      Meta <span style={{ color: LARANJA, fontWeight: 800 }}>{brlK(info!.meta)}</span>
-                    </div>
-                    <div style={{ color: '#9aa2b2', fontSize: 12 }}>A faturar {brlK(info!.realizado)}</div>
-                  </>
-                ) : (
+              {!temMeta && (
+                <div style={{ position: 'absolute', top: cy + r / 2 + (ps.length > 0 ? 40 : 8), left: cx - 90, width: 180, textAlign: 'center', zIndex: 10, lineHeight: 1.3 }}>
                   <div style={{ color: '#6b7280', fontSize: 12, fontWeight: 600 }}>sem meta</div>
-                )}
-              </div>
+                </div>
+              )}
             </React.Fragment>
           );
         })}

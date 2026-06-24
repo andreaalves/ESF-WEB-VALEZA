@@ -29,9 +29,9 @@ function brlK(v: number) {
 }
 
 function corPct(pct: number) {
-  if (pct >= 85) return '#48bb78'; // verde
-  if (pct >= 60) return '#ed8936'; // laranja
-  return '#f56565'; // vermelho
+  if (pct >= 100) return '#48bb78'; // verde — bateu/passou a meta
+  if (pct >= 60) return '#ed8936'; // laranja — no caminho
+  return '#f56565'; // vermelho — longe
 }
 
 function formatDelta(d: number | null): { text: string; cor: string } {
