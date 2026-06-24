@@ -5,6 +5,8 @@ export type VendedorProgresso = {
   nome: string;
   casas: number; // 0..12 (quantas metas mensais já bateu)
   cor: string;
+  realizado?: number; // valor vendido no mês (p/ tooltip)
+  meta?: number; // meta do mês (p/ tooltip)
 };
 
 // iniciais do vendedor (1ª letra do 1º e do último nome)

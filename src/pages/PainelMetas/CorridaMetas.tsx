@@ -158,7 +158,15 @@ export const CorridaTabelaClassificacao: React.FC<{
                 <span style={{ textAlign: 'right', color: cor, fontSize: 13, fontWeight: 800 }}>{Math.round(p.pct)}%</span>
                 <span style={{ padding: '0 10px' }}>
                   <span style={{ display: 'block', height: 8, borderRadius: 6, background: '#1d2130', overflow: 'hidden' }}>
-                    <span style={{ display: 'block', height: '100%', width: `${Math.min(p.pct, 100)}%`, background: cor, borderRadius: 6 }} />
+                    <span
+                      style={{
+                        display: 'block', height: '100%', width: `${Math.min(p.pct, 100)}%`, borderRadius: 6,
+                        background: `linear-gradient(to right, ${
+                          p.pct >= 100 ? '#68d391' : p.pct >= 70 ? '#f6ad55' : '#fe8026'
+                        }, #4fd1c5)`,
+                        transition: 'width .6s ease',
+                      }}
+                    />
                   </span>
                 </span>
                 <span style={{ textAlign: 'right', color: d.cor, fontSize: 12, fontWeight: 700 }}>{d.text}</span>

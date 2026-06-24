@@ -7,7 +7,6 @@ import {
   Text as TextBase,
   HStack as HStackBase,
   SimpleGrid as SimpleGridBase,
-  Progress as ProgressBase,
 } from '@chakra-ui/react';
 import { useEffect, useMemo, useState } from 'react';
 import Chart from 'react-apexcharts';
@@ -18,7 +17,7 @@ import { Wapper } from '../../components/Wapper';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../service/api';
 import { useHistory } from 'react-router-dom';
-import { CorridaTabuleiro, CorridaTabelaClassificacao, CorridaDestaques, ParticipanteCorrida } from './CorridaMetas';
+import { CorridaTabuleiro, CorridaTabelaClassificacao, ParticipanteCorrida } from './CorridaMetas';
 import { VendedorProgresso } from './TabuleiroTrilha';
 
 // Chakra v1 + TS strict estoura TS2590; cast para any contorna.
@@ -30,7 +29,6 @@ const Select = SelectBase as any;
 const Text = TextBase as any;
 const HStack = HStackBase as any;
 const SimpleGrid = SimpleGridBase as any;
-const Progress = ProgressBase as any;
 const ApexChart = Chart as any;
 
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -254,9 +252,12 @@ export const PainelMetas = () => {
     setDados(novo);
 
     // participantes da corrida (mês selecionado): pedidos a faturar, meta, % e crescimento vs mês anterior
+    // Realizado do mês = tudo que o vendedor vendeu (a faturar + já faturado).
+    // Antes contava só "a faturar", então quem já tinha pedido faturado ficava
+    // com 0 e o peão não andava na trilha.
     const realDoMes = (cid: string, m: number) => {
       const r = realMap[cid]?.[m];
-      return r?.aFaturar || 0;
+      return (r?.aFaturar || 0) + (r?.faturado || 0);
     };
     // Só vendedores com meta cadastrada no mês participam da corrida/classificação.
     const parts: ParticipanteCorrida[] = vendedores
@@ -271,18 +272,18 @@ export const PainelMetas = () => {
       .filter((p) => p.meta > 0);
     setParticipantes(parts);
 
-    // Progresso na trilha: "casas" = nº de metas mensais já batidas (realizado >= meta).
+    // Progresso na trilha = CORRIDA DO MÊS ATUAL. "casas" guarda a fração da meta
+    // do mês selecionado (0..1); a trilha usa isso para posicionar o peão na linha
+    // que leva até a casa do mês atual (chegou na casa = bateu 100%).
     const prog: VendedorProgresso[] = vendedores
       .map((v, i) => {
-        let casas = 0;
-        for (let m = 1; m <= 12; m++) {
-          const meta = metaMap[v.id]?.[m] || 0;
-          if (meta > 0 && realDoMes(v.id, m) >= meta) casas++;
-        }
-        return { id: v.id, nome: v.nome, casas, cor: PALETA[i % PALETA.length] };
+        const metaMes = metaMap[v.id]?.[mesSel] || 0;
+        const realMes = realDoMes(v.id, mesSel);
+        const fracMes = metaMes > 0 ? Math.min(realMes / metaMes, 1) : 0;
+        return { id: v.id, nome: v.nome, casas: fracMes, cor: PALETA[i % PALETA.length], realizado: realMes, meta: metaMes };
       })
-      // só entra na trilha quem tem alguma meta no ano
-      .filter((v) => !!metaMap[v.id]);
+      // só corre quem tem meta cadastrada no mês atual
+      .filter((v) => (metaMap[v.id]?.[mesSel] || 0) > 0);
     setProgresso(prog);
   }
 
@@ -690,14 +691,19 @@ export const PainelMetas = () => {
                       <Text fontSize="lg" fontWeight="800" color="white" lineHeight="1.1">
                         {meta > 0 ? `${st.pct.toFixed(0)}%` : '—'}
                       </Text>
-                      <Progress
-                        mt="1"
-                        mb="2"
-                        size="xs"
-                        borderRadius="full"
-                        colorScheme={st.cor}
-                        value={Math.min(st.pct, 100)}
-                      />
+                      <Box mt="1" mb="2" h="6px" w="100%" borderRadius="full" bg="whiteAlpha.200" overflow="hidden">
+                        <Box
+                          h="100%"
+                          borderRadius="full"
+                          w={`${Math.min(st.pct, 100)}%`}
+                          style={{
+                            background: `linear-gradient(to right, ${
+                              st.pct >= 100 ? '#68d391' : st.pct >= 70 ? '#f6ad55' : '#fe8026'
+                            }, #4fd1c5)`,
+                            transition: 'width .6s ease',
+                          }}
+                        />
+                      </Box>
                       <Text fontSize="10px" color="gray.400" noOfLines={1}>
                         {meta > 0 ? brl(realizado) : 'sem meta'}
                       </Text>
@@ -730,18 +736,13 @@ export const PainelMetas = () => {
               onVendedorClick={(id: string) => history.push(`/cadastro/meta/${id}?ano=${ano}`)}
             />
 
-            {/* ── Classificação + Destaques (embaixo, lado a lado) ── */}
-            <Flex mt="6" gap="4" align="flex-start" direction={['column', 'column', 'row']}>
-              <Box flex="3 1 560px" minW={0}>
-                <CorridaTabelaClassificacao
-                  participantes={participantes}
-                  onParticipanteClick={(id: string) => history.push(`/cadastro/meta/${id}?ano=${ano}`)}
-                />
-              </Box>
-              <Box flex="1 1 280px" minW={0}>
-                <CorridaDestaques participantes={participantes} />
-              </Box>
-            </Flex>
+            {/* ── Classificação dos participantes (ocupa toda a largura) ── */}
+            <Box mt="6">
+              <CorridaTabelaClassificacao
+                participantes={participantes}
+                onParticipanteClick={(id: string) => history.push(`/cadastro/meta/${id}?ano=${ano}`)}
+              />
+            </Box>
 
             {totais.metaAno === 0 && (
               <Box mt="4" p="3" bg="rgba(254,128,38,0.08)" borderRadius="lg" border="1px solid" borderColor="orange.200">
