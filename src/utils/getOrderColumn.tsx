@@ -43,7 +43,14 @@ export function getColumn(
     },
     {
       Header: 'Data de emissão',
-      accessor: 'dataEmissao',
+      id: 'dataEmissao',
+      // Accessor retorna o timestamp para o react-table ordenar
+      // cronologicamente (menor = mais antigo, maior = mais recente).
+      accessor: (row: any) => {
+        const dt = DateTime.fromISO(row.data_emissao);
+        return dt.isValid ? dt.toMillis() : 0;
+      },
+      sortType: 'basic',
       Cell: ({ row }: any) =>
         DateTime.fromISO(row.original.data_emissao)
           .plus({ hours: 3 })
