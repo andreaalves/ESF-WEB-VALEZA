@@ -81,7 +81,6 @@ export default function ListProvider() {
         `/api-essencial/v1/fornecedores/${user.empresa.id}/empresa?excluido=false`
       )
       .then((response) => {
-        console.log(response.data.data);
         setProviders(response.data.data);
       })
       .catch(() => {})

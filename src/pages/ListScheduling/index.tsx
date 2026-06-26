@@ -78,14 +78,12 @@ export default function ListShippingCompany() {
   const history = useHistory();
   const { user } = useAuth();
 
-  console.log(user.empresa.id);
 
   useEffect(() => {
     api
       .get(`/api-essencial/v1/agendamentos`)
       .then((response) => {
         setScheduling(response.data.data);
-        console.log(response.data.data);
       })
       .catch(() => {})
       .finally(() => {

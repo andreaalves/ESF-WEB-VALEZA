@@ -82,7 +82,6 @@ export default function ListClient() {
       // .get(`/api-essencial/v1/clientes/${userFind}/empresa?excluido=false`)
       .get(`/api-essencial/v1/clientes`)
       .then((response) => {
-        console.log('clientes', response.data);
         setClients(response.data);
       })
       .catch(() => {})

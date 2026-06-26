@@ -99,7 +99,6 @@ export const CreateScheduling: React.FC = () => {
       )
       .then((response) => {
         setCostumer(response.data.data);
-        console.log(response.data.data);
       });
   }, []);
 
@@ -111,7 +110,6 @@ export const CreateScheduling: React.FC = () => {
       )
       .then((response) => {
         setCollaborator(response.data.data);
-        console.log(response.data.data);
       });
   }, []);
 
@@ -137,9 +135,6 @@ export const CreateScheduling: React.FC = () => {
     let day = DateTime.now().day;
     let mounth = DateTime.now().month;
     let year = DateTime.now().year;
-    console.log(DateTime.fromISO(e.target.value));
-    console.log(e.target.value);
-    console.log(DateTime.fromISO(`${year}-${mounth}-${day}`));
 
     if (
       DateTime.fromISO(e.target.value) <
@@ -201,7 +196,6 @@ export const CreateScheduling: React.FC = () => {
   // };
 
   const onSubmit: SubmitHandler<IFormInputs> = async (data, e) => {
-    console.log(data);
 
     // Object.assign(data, {
     //   empresa: { id: user.empresa.id },
@@ -278,7 +272,6 @@ export const CreateScheduling: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log(errors);
   }, [errors]);
 
   return (

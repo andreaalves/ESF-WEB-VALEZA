@@ -39,7 +39,6 @@ export const Login = () => {
 
       history.push('/home');
     } catch (error) {
-      console.log(error);
       // const errorMessage = error.response.data.message;
 
       if (error) {

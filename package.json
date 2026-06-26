@@ -11,7 +11,7 @@
     "@types/leaflet": "^1.9.21",
     "@types/luxon": "^2.0.4",
     "apexcharts": "^3.32.0",
-    "axios": "^0.21.1",
+    "axios": "^0.28.0",
     "framer-motion": "^4",
     "leaflet": "^1.9.4",
     "luxon": "^2.0.2",

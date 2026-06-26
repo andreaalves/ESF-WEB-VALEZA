@@ -8,7 +8,7 @@ import api from "../../service/api";
 import { getColumn } from "../../utils/getColumn";
 
 export default function PagesTest() {
-  const column = getColumn(() => console.log("delted"), "/edit");
+  const column = getColumn(() => {}, "/edit");
 
   const columns = [
     {
@@ -155,7 +155,6 @@ export default function PagesTest() {
 
   useEffect(() => {
     api.get("/api-essencial/v1/fornecedores").then((response) => {
-      console.log(response.data);
     });
   }, []);
 

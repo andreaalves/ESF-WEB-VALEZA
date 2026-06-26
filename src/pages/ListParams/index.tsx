@@ -48,7 +48,6 @@ export default function ListParams() {
   }
 
   const x = async (e: any, id: string) => {
-    console.log(parametros);
     try {
       await api.post(
         // `/api-essencial/v1/parametrizacao/update-excluido/${id}`,
@@ -99,7 +98,6 @@ export default function ListParams() {
       .get(`/api-essencial/v1/parametrizacao/${user.empresa.id}`)
       .then((response) => {
         setParametros(response.data);
-        console.log(response.data);
       })
       .catch((error) => {})
       .finally(() => {

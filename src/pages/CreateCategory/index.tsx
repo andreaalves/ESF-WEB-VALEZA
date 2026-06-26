@@ -60,7 +60,6 @@ export const CreateCategory: React.FC = () => {
     if (!params.id) return;
 
     api.get(`/api-essencial/v1/categorias/${params.id}`).then((response) => {
-      console.log(response);
       setValue('nome', response.data.nome);
       setValue('descricao', response.data.descricao);
     });

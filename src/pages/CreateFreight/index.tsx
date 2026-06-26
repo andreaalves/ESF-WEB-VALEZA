@@ -79,7 +79,6 @@ export const CreateFreight = () => {
     if (!params.id || transportadora.length < 1) return;
 
     api.get(`/api-essencial/v1/tabela-fretes/${params.id}`).then((response) => {
-      console.log('editar', response.data);
 
       setValue('transportadora.id', response.data.data.transportadora.id);
       setValue('destino', response.data.data.destino);
@@ -96,7 +95,6 @@ export const CreateFreight = () => {
   const characters = ['.', '-', '(', ')'];
 
   const Submit: SubmitHandler<IFormInputs> = async (data, e) => {
-    console.log(data);
     characters.forEach((character) => {
       data.percentualFrete = data.percentualFrete.replaceAll(character, '');
       data.percentualFrete = data.percentualFrete.replaceAll(',', '.');
@@ -145,7 +143,6 @@ export const CreateFreight = () => {
 
     try {
       await api.post('/api-essencial/v1/tabela-fretes', data);
-      console.log('dados', data);
       toast({
         title: 'Cadastro Realizado com sucesso',
         description: ``,

@@ -98,7 +98,6 @@ export const CreateProvider: React.FC = () => {
   useEffect(() => {
     if (!params.id) return;
     api.get(`/api-essencial/v1/fornecedores/${params.id}`).then((response) => {
-      console.log(response.data.data);
       setValue('razaoSocial', response.data.data.razaoSocial);
       setValue('fantasia', response.data.data.fantasia);
       setValue('cnpjCpf', response.data.data.cnpjCpf);
@@ -125,7 +124,6 @@ export const CreateProvider: React.FC = () => {
       ],
     });
 
-    console.log(data);
 
     if (params.id) {
       Object.assign(data, { id: params.id });

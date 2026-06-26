@@ -138,7 +138,6 @@ export const CreateUser: React.FC = () => {
         reset();
         history.push('/listar/vendedor');
       } catch (error: any) {
-        console.log(error);
         if (error.data) {
           return toast({
             title: 'Atenção !!',

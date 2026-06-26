@@ -99,7 +99,7 @@ export default function ListItensBudget() {
   }, [orders.length, params.id]);
 
   const columnItensOrder = getBudgetItensColumn(
-    () => console.log(orders),
+    () => {},
     '/edit'
   );
 

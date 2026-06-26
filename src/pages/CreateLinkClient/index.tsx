@@ -64,7 +64,6 @@ export const CreateLinkClient: React.FC = () => {
   }
 
   const x = async (e: any, id: string) => {
-    console.log(id);
     try {
       await api.delete(`/api-essencial/v1/tabela-preco-cliente/${id}`, {});
 
@@ -151,7 +150,6 @@ export const CreateLinkClient: React.FC = () => {
     api
       .get(`/api-essencial/v1/tabela-preco-cliente/${editId}`)
       .then((response) => {
-        console.log(response.data);
         setValue('cliente', response.data.data.cliente);
 
         // setIsProductSelected(true);
@@ -219,7 +217,6 @@ export const CreateLinkClient: React.FC = () => {
     } catch (error: any) {
       const errorMessage = error.response.data.message;
 
-      console.log(errorMessage);
 
       if (error) {
         return toast({
@@ -235,7 +232,6 @@ export const CreateLinkClient: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log('ERRO:', errors);
   }, [errors]);
 
   return (

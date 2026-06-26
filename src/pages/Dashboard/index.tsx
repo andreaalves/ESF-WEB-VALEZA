@@ -156,7 +156,6 @@ export const Dashboard = () => {
           `/api-essencial/v1/pedidos/${user.empresa.id}/empresa?excluido=false`
         );
 
-        console.log(response.data.data);
         setOrders(response.data.data);
       } catch (error) {
         setIsLoading(false);

@@ -112,7 +112,6 @@ export const CreateParams = () => {
       .then((response) => {
         const dados = response.data[0];
 
-        console.log('dados', dados);
 
         setTipoPedido(dados.tipo_pedido || []);
         setLogo(dados.empresas?.logo || undefined);

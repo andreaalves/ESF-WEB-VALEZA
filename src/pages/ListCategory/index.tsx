@@ -38,7 +38,6 @@ export default function ListCategory() {
 
   const params = useParams<IParams>();
 
-  console.log(params);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const id = params.id;

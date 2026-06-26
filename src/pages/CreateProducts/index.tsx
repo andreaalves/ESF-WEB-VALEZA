@@ -167,7 +167,6 @@ export const CreateProducts: React.FC = () => {
 
   const { errors } = formState;
   useEffect(() => {
-    console.log(errors);
   }, [errors]);
   const toast = useToast();
   const history = useHistory();
@@ -179,7 +178,6 @@ export const CreateProducts: React.FC = () => {
           preco_custo_final: currencyMask(data.precoVenda),
         };
 
-        console.log(newData);
         api
           .patch(`/api-essencial/v1/produtos/${params.id}`, newData)
           .then((response) => {

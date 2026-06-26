@@ -82,7 +82,6 @@ export default function ListFreight() {
         `/api-essencial/v1/tabela-fretes/${user.empresa.id}/empresa?excluido=false`
       )
       .then((response) => {
-        console.log("lista frete", response.data.data);
         setFreights(response.data.data);
 
         const freightFormated = response.data.data.map((freight: any) => {

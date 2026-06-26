@@ -78,7 +78,6 @@ export default function ListShippingCompany() {
   const history = useHistory();
   const { user } = useAuth();
 
-  console.log(user.empresa.id);
 
   useEffect(() => {
     api
@@ -87,7 +86,6 @@ export default function ListShippingCompany() {
       )
       .then((response) => {
         setShippingCompanies(response.data.data);
-        console.log(response.data.data);
       })
       .catch(() => {})
       .finally(() => {

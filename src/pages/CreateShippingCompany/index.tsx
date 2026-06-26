@@ -132,7 +132,6 @@ export const CreateShipingCompany: React.FC = () => {
           (estado) => estado.nome === resp.data.data.endereco.cidade
         );
 
-        console.log(city);
 
         setValue("razaoSocial", resp.data.data.razaoSocial);
         setValue("fantasia", resp.data.data.fantasia);
@@ -158,7 +157,6 @@ export const CreateShipingCompany: React.FC = () => {
   };
 
   const onSubmit: SubmitHandler<IFormInputs> = async (data, e) => {
-    console.log(data);
 
     Object.assign(data, {
       empresa: { id: user.empresa.id },
@@ -199,7 +197,6 @@ export const CreateShipingCompany: React.FC = () => {
 
       return;
     }
-    console.log(data);
     try {
       await api.post("/api-essencial/v1/transportadoras", data);
       toast({
@@ -235,7 +232,6 @@ export const CreateShipingCompany: React.FC = () => {
   };
 
   useEffect(() => {
-    console.log(errors);
   }, [errors]);
 
   return (

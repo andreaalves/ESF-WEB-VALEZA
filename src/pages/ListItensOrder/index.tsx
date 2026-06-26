@@ -60,7 +60,6 @@ export default function ListItensOrder() {
   const toast = useToast();
 
   const blockOrder = async (e: any, id: string) => {
-    console.log(id);
     try {
       await api.patch(`/api-essencial/v1/pedidos/block-orders/${id}`);
 
@@ -100,7 +99,7 @@ export default function ListItensOrder() {
   }, [orders.length, params.id]);
 
   const columnItensOrder = getItensOrderColumn(
-    () => console.log(orders),
+    () => {},
     '/edit'
   );
 

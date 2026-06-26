@@ -117,7 +117,6 @@ export default function ListBudget() {
   }
 
   function handleSearch() {
-    console.log(finalDate, initialDate);
     if (DateTime.fromISO(finalDate) < DateTime.fromISO(initialDate)) {
       return toast({
         title: 'DATAS INVÁLIDAS',
@@ -170,7 +169,7 @@ export default function ListBudget() {
   }
 
   const column = getColumn(
-    () => console.log('delted'),
+    () => {},
     '/listar/orcamento',
     showModal
   );

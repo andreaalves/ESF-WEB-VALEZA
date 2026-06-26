@@ -63,7 +63,6 @@ export const CreatePriceTable: React.FC = () => {
   useEffect(() => {
     if (!params.id) return;
     api.get(`/api-essencial/v1/tabela-precos/${params.id}`).then((response) => {
-      console.log(response.data.data);
       setValue('nome', response.data.data.nome);
       setValue('dataInicial', response.data.data.dataInicial);
       setValue('dataFinal', response.data.data.dataFinal);
@@ -72,7 +71,6 @@ export const CreatePriceTable: React.FC = () => {
   }, [params.id, setValue]);
 
   const onSubmit: SubmitHandler<IFormInputs> = async (data, e) => {
-    console.log(data);
 
     Object.assign(data, {
       empresa: { id: `${user.empresa.id}` },
@@ -109,7 +107,6 @@ export const CreatePriceTable: React.FC = () => {
 
     try {
       await api.post('/api-essencial/v1/tabela-precos', data);
-      console.log('Dados', data);
 
       toast({
         title: 'Cadastro Realizado com sucesso',

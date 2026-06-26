@@ -148,7 +148,6 @@ export default function ListOrder() {
   }
 
   function handleSearch() {
-    console.log(finalDate, initialDate);
     if (DateTime.fromISO(finalDate) < DateTime.fromISO(initialDate)) {
       return toast({
         title: 'DATAS INVÁLIDAS',
@@ -182,7 +181,6 @@ export default function ListOrder() {
     );
     setOrderFilter(orderFilter);
 
-    console.log('oderFilter', orderFilter);
     if (orderFilter.length >= 1) {
       setShowFilter(-1);
       return;
@@ -224,7 +222,7 @@ export default function ListOrder() {
   }
 
   const column = getColumn(
-    () => console.log('delted'),
+    () => {},
     '/listar/pedido',
     showModal,
     handleApprove,
