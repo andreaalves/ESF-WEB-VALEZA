@@ -1,5 +1,5 @@
 import { IconButton, Flex, HStack, Link as ChakraLink } from '@chakra-ui/react';
-import { FiEdit2, FiXSquare } from 'react-icons/fi';
+import { FiEdit2, FiSettings, FiXSquare } from 'react-icons/fi';
 
 export function getColumn(
   deleteFunction: (id: string) => void,
@@ -10,7 +10,11 @@ export function getColumn(
       Header: '',
       accessor: 'empresa_id',
       Cell: ({ row }: any) => (
-        <span>{`Parametrização ${row.original.empresas.razao_social}`}</span>
+        <span>
+          {row.original.fantasia || row.original.razao_social}
+          {row.original.filial ? ` (${row.original.filial})` : ''}
+          {row.original.matriz ? ' — Matriz' : ''}
+        </span>
       ),
     },
     {
@@ -21,7 +25,21 @@ export function getColumn(
             <ChakraLink href={`${editPath}/${row.original.empresa_id}`}>
               <IconButton
                 size="sm"
-                aria-label="Editar"
+                aria-label="Editar parametrização"
+                colorScheme="orange"
+                bg="orange.500"
+                _hover={{
+                  bg: 'orange.600',
+                }}
+                icon={<FiSettings size={18} color="#eeeef2" />}
+              />
+            </ChakraLink>
+            <ChakraLink
+              href={`/edit/parametrizacao/${row.original.empresa_id}`}
+            >
+              <IconButton
+                size="sm"
+                aria-label="Editar dados da empresa"
                 colorScheme="blue"
                 bg="blue.500"
                 _hover={{

@@ -396,7 +396,7 @@ export const Dashboard = () => {
             <VStack spacing="6">
               <SimpleGrid minChildWidth="240px" spacing="6" w="100%">
                 <Box bg="gray.700" h="100px" borderRadius={8} p={3}>
-                  <Text color="#fff" fontWeight="bold" fontSize="1.2rem">
+                  <Text color="gray.50" fontWeight="bold" fontSize="1.2rem">
                     FATURAMENTO
                   </Text>
                   <Text color="green.300" fontWeight="bold" fontSize="2rem">
@@ -404,7 +404,7 @@ export const Dashboard = () => {
                   </Text>
                 </Box>
                 <Box bg="gray.700" h="100px" borderRadius={8} p={3}>
-                  <Text color="#fff" fontWeight="bold" fontSize="1.2rem">
+                  <Text color="gray.50" fontWeight="bold" fontSize="1.2rem">
                     MARGEM %
                   </Text>
                   <Text color="blue.400" fontWeight="bold" fontSize="2rem">
@@ -412,7 +412,7 @@ export const Dashboard = () => {
                   </Text>
                 </Box>
                 <Box bg="gray.700" h="100px" borderRadius={8} p={3}>
-                  <Text color="#fff" fontWeight="bold" fontSize="1.2rem">
+                  <Text color="gray.50" fontWeight="bold" fontSize="1.2rem">
                     PREÇO MÉDIO
                   </Text>
                   <Text color="gray.300" fontWeight="bold" fontSize="2rem">
@@ -420,7 +420,7 @@ export const Dashboard = () => {
                   </Text>
                 </Box>
                 <Box bg="gray.700" h="100px" borderRadius={8} p={3}>
-                  <Text color="#fff" fontWeight="bold" fontSize="1.2rem">
+                  <Text color="gray.50" fontWeight="bold" fontSize="1.2rem">
                     QUANT. DE PEDIDOS
                   </Text>
                   <Text color="gray.300" fontWeight="bold" fontSize="2rem">
@@ -463,7 +463,7 @@ export const Dashboard = () => {
               <SimpleGrid minChildWidth="320px" spacing="6" w="100%">
                 <Box bg="gray.700" borderRadius={8} p={5}>
                   <HStack justify="space-between" mb={4}>
-                    <Text color="#fff" fontWeight="bold" fontSize="1.1rem">Pedido Ideal</Text>
+                    <Text color="gray.50" fontWeight="bold" fontSize="1.1rem">Pedido Ideal</Text>
                     <Badge colorScheme="orange">mix sugerido</Badge>
                   </HStack>
                   {insights.pedidoIdeal.length ? insights.pedidoIdeal.map((p, idx) => (
@@ -478,7 +478,7 @@ export const Dashboard = () => {
 
                 <Box bg="gray.700" borderRadius={8} p={5}>
                   <HStack justify="space-between" mb={4}>
-                    <Text color="#fff" fontWeight="bold" fontSize="1.1rem">Tracking Operacional</Text>
+                    <Text color="gray.50" fontWeight="bold" fontSize="1.1rem">Tracking Operacional</Text>
                     <Badge colorScheme="teal">último pedido</Badge>
                   </HStack>
                   {insights.tracking.length ? insights.tracking.map((t, idx) => (
@@ -494,7 +494,7 @@ export const Dashboard = () => {
 
               <SimpleGrid minChildWidth="240px" spacing="6" w="100%">
                 <Box bg="gray.700" borderRadius={8} p={3}>
-                  <Text color="#fff" fontWeight="bold" fontSize="1.2rem">
+                  <Text color="gray.50" fontWeight="bold" fontSize="1.2rem">
                     VENDAS DO MÊS
                   </Text>
                   <Chart
@@ -505,7 +505,7 @@ export const Dashboard = () => {
                   />
                 </Box>
                 <Box bg="gray.700" borderRadius={8} p={3}>
-                  <Text color="#fff" fontWeight="bold" fontSize="1.2rem">
+                  <Text color="gray.50" fontWeight="bold" fontSize="1.2rem">
                     META POR VENDEDOR
                   </Text>
                   <Chart

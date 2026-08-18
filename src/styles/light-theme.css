@@ -1,0 +1,107 @@
+/*
+ * TEMA CLARO
+ * ---------------------------------------------------------------------------
+ * O app inteiro pinta as superfícies com a escala `gray.*` do tema (gray.900 =
+ * header/inputs, gray.800 = cards, gray.700 = fundo da página, gray.50/100 =
+ * texto). O Chakra 1.6 publica cada token do tema como CSS variable
+ * (`--chakra-colors-gray-700`), então basta inverter a escala aqui para virar
+ * as ~50 telas de uma vez, sem mexer em componente nenhum.
+ *
+ * Por que `html[data-theme='light']` funciona: o Chakra injeta as variáveis em
+ * `:root` (especificidade 0,1,0) e este seletor é 0,1,1 — ganha sempre, sem
+ * depender da ordem de injeção das folhas de estilo.
+ *
+ * O atributo data-theme é escrito por src/context/ThemeModeContext.tsx.
+ */
+
+html[data-theme='light'] {
+  /* Superfícies — a ordem relativa da escala escura é preservada:
+     no escuro gray.700 é mais claro que gray.800/900, então no claro
+     gray.700 (fundo da página) fica mais escuro que os cards. */
+  --chakra-colors-gray-900: #ffffff; /* header, cabeçalho de tabela, inputs, modais */
+  --chakra-colors-gray-800: #f7f8fc; /* cards */
+  --chakra-colors-gray-700: #e8ebf2; /* fundo da página, painéis internos, hover */
+  --chakra-colors-gray-600: #cfd3de; /* divisores e bordas */
+  --chakra-colors-gray-500: #8b90a1; /* bordas de célula / texto bem discreto */
+
+  /* Textos */
+  --chakra-colors-gray-400: #6b7080; /* texto secundário */
+  --chakra-colors-gray-300: #555a6a;
+  --chakra-colors-gray-200: #3d4250; /* texto de célula de tabela */
+  --chakra-colors-gray-100: #2b2f3a;
+  --chakra-colors-gray-50: #1a1d26; /* texto principal */
+
+  /* Véus claros viram véus escuros (trilhas de progresso, overlays) */
+  --chakra-colors-whiteAlpha-50: rgba(0, 0, 0, 0.04);
+  --chakra-colors-whiteAlpha-100: rgba(0, 0, 0, 0.06);
+  --chakra-colors-whiteAlpha-200: rgba(0, 0, 0, 0.08);
+  --chakra-colors-whiteAlpha-300: rgba(0, 0, 0, 0.16);
+  --chakra-colors-whiteAlpha-400: rgba(0, 0, 0, 0.24);
+  --chakra-colors-whiteAlpha-500: rgba(0, 0, 0, 0.36);
+  --chakra-colors-whiteAlpha-600: rgba(0, 0, 0, 0.48);
+  --chakra-colors-whiteAlpha-700: rgba(0, 0, 0, 0.64);
+  --chakra-colors-whiteAlpha-800: rgba(0, 0, 0, 0.8);
+  --chakra-colors-whiteAlpha-900: rgba(0, 0, 0, 0.92);
+}
+
+/* Troca de tema suave (só nas superfícies, para não pesar em tabelas grandes) */
+html body {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ------------------------------------------------------------------------- */
+/* Ajustes finos do tema claro                                               */
+/* ------------------------------------------------------------------------- */
+
+/* Header e sidebar ficam brancos sobre fundo cinza: uma sombra leve devolve
+   a separação que no escuro vinha do contraste de cor. */
+html[data-theme='light'] header {
+  box-shadow: 0 1px 3px rgba(24, 27, 35, 0.1);
+}
+
+/* Inputs usam bg gray.900 (branco no claro) dentro de cards quase brancos —
+   sem borda eles desaparecem. */
+html[data-theme='light'] input:not([type='checkbox']):not([type='radio']),
+html[data-theme='light'] select,
+html[data-theme='light'] textarea {
+  border: 1px solid var(--chakra-colors-gray-600);
+}
+
+/* Os ~18 spinners de carregamento das listas são fixados em branco no JSX
+   (`<Spinner color="white" />`), o que desaparece no fundo claro. */
+html[data-theme='light'] .chakra-spinner {
+  color: var(--chakra-colors-gray-50) !important;
+}
+
+/* Cards ganham um contorno discreto no lugar do contraste do modo escuro. */
+html[data-theme='light'] .chakra-modal__content {
+  box-shadow: 0 10px 30px rgba(24, 27, 35, 0.18);
+}
+
+/* ApexCharts: os gráficos fixam foreColor claro (#fff / #9699B0) no JS, que
+   fica invisível no fundo claro. Aqui só os textos de eixo/legenda/título são
+   escurecidos — os data labels desenhados sobre barras/fatias coloridas
+   continuam brancos de propósito. */
+html[data-theme='light'] .apexcharts-xaxis-label,
+html[data-theme='light'] .apexcharts-yaxis-label,
+html[data-theme='light'] .apexcharts-xaxis-title-text,
+html[data-theme='light'] .apexcharts-yaxis-title-text,
+html[data-theme='light'] .apexcharts-title-text,
+html[data-theme='light'] .apexcharts-subtitle-text {
+  fill: #3d4250;
+}
+
+html[data-theme='light'] .apexcharts-legend-text {
+  color: #3d4250 !important;
+}
+
+html[data-theme='light'] .apexcharts-gridline,
+html[data-theme='light'] .apexcharts-grid-borders line {
+  stroke: rgba(24, 27, 35, 0.12);
+}
+
+html[data-theme='light'] .apexcharts-tooltip {
+  background: #ffffff;
+  color: #1a1d26;
+  border: 1px solid var(--chakra-colors-gray-600);
+}

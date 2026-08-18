@@ -44,7 +44,7 @@ export function getColumn(
       Cell: ({ row }: any) => (
         <Flex as="main" alignItems="center" justifyContent="end">
           <HStack spacing={2}>
-            <ChakraLink href={`${editPath}/${row.original.usuario_id}`}>
+            <ChakraLink href={`${editPath}/${row.original.colaborador_id}`}>
               <IconButton
                 size="sm"
                 aria-label="Editar"

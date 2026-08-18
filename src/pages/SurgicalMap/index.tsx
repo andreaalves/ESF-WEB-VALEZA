@@ -61,6 +61,17 @@ const STATUS_CFG: Record<StatusWorkflow, { label: string; dotColor: string; text
 
 const ITEMS_PER_PAGE = 10;
 
+// A linha do mapa é pastel/clara de propósito nos dois temas (imita o mapa
+// impresso). Por isso usa hex literal em vez dos tokens gray.*, que se invertem
+// no tema claro e deixariam o texto ilegível sobre os pastéis.
+const ROW_DIVISOR = "#d1d2dc";
+const ROW_TEXTO = "#353646";
+const ROW_TEXTO_FORTE = "#1f2029";
+const ROW_TEXTO_FRACO = "#4b4d63";
+const ROW_BG_CANCELADO = "#d1d2dc";
+const ROW_BORDA_CANCELADO = "#9699b0";
+const ROW_BORDA_CANCELADO_HOVER = "#797d9a";
+
 const RowFlex = Flex as React.ComponentType<any>;
 const RowBox = Box as React.ComponentType<any>;
 const RowText = Text as React.ComponentType<any>;
@@ -78,9 +89,9 @@ function MapRow({ item }: { item: Scheduling }) {
     const isCancelado = item.statusPedido === "CANCELADO_ERP";
     const temNF = !!item.numeroNF;
 
-    const bgColor: string = isCancelado ? "gray.100" : temNF ? "green.50" : isUrgencia ? "red.50" : item.tipo === "ELETIVA" ? "blue.50" : "orange.50";
-    const borderColor: string = isCancelado ? "gray.300" : temNF ? "green.200" : isUrgencia ? "red.200" : item.tipo === "ELETIVA" ? "blue.200" : "orange.200";
-    const hoverBorder: string = isCancelado ? "gray.400" : temNF ? "green.300" : isUrgencia ? "red.300" : item.tipo === "ELETIVA" ? "blue.300" : "orange.300";
+    const bgColor: string = isCancelado ? ROW_BG_CANCELADO : temNF ? "green.50" : isUrgencia ? "red.50" : item.tipo === "ELETIVA" ? "blue.50" : "orange.50";
+    const borderColor: string = isCancelado ? ROW_BORDA_CANCELADO : temNF ? "green.200" : isUrgencia ? "red.200" : item.tipo === "ELETIVA" ? "blue.200" : "orange.200";
+    const hoverBorder: string = isCancelado ? ROW_BORDA_CANCELADO_HOVER : temNF ? "green.300" : isUrgencia ? "red.300" : item.tipo === "ELETIVA" ? "blue.300" : "orange.300";
 
     return (
         <RowFlex
@@ -117,7 +128,7 @@ function MapRow({ item }: { item: Scheduling }) {
 
             {/* TIPO */}
             <RowFlex w="100px" flexShrink={0} align="center" justify="center" px={2}
-                borderLeft="1px solid" borderColor="gray.100">
+                borderLeft="1px solid" borderColor={ROW_DIVISOR}>
                 <RowText fontWeight="black" fontSize="xs" color={tipoColor}>
                     {item.tipo === "URGENCIA" ? "URGENCIA" :
                      item.tipo === "CONSIGNADO" ? "CONSIGNADO" : "ELETIVO"}
@@ -125,49 +136,49 @@ function MapRow({ item }: { item: Scheduling }) {
             </RowFlex>
 
             {/* HOSPITAL */}
-            <RowFlex flex={1.4} align="center" px={3} borderLeft="1px solid" borderColor="gray.100">
-                <RowText fontWeight="600" fontSize="xs" color="gray.700" noOfLines={1}>
+            <RowFlex flex={1.4} align="center" px={3} borderLeft="1px solid" borderColor={ROW_DIVISOR}>
+                <RowText fontWeight="600" fontSize="xs" color={ROW_TEXTO} noOfLines={1}>
                     {item.cliente?.razaoSocial}
                 </RowText>
             </RowFlex>
 
             {/* DATA PROCEDIMENTO */}
-            <RowFlex flex={1.3} align="center" px={3} borderLeft="1px solid" borderColor="gray.100">
-                <RowText fontWeight="600" fontSize="xs" color="gray.700">{dataLabel}</RowText>
+            <RowFlex flex={1.3} align="center" px={3} borderLeft="1px solid" borderColor={ROW_DIVISOR}>
+                <RowText fontWeight="600" fontSize="xs" color={ROW_TEXTO}>{dataLabel}</RowText>
             </RowFlex>
 
             {/* PACIENTE */}
-            <RowFlex flex={1.8} align="center" px={3} borderLeft="1px solid" borderColor="gray.100">
-                <RowText fontWeight="700" fontSize="xs" color="gray.800" noOfLines={1}>
+            <RowFlex flex={1.8} align="center" px={3} borderLeft="1px solid" borderColor={ROW_DIVISOR}>
+                <RowText fontWeight="700" fontSize="xs" color={ROW_TEXTO_FORTE} noOfLines={1}>
                     {item.paciente || "—"}
                 </RowText>
             </RowFlex>
 
             {/* CONVENIO */}
             <RowFlex flex={0.9} align="center" justify="center" px={2}
-                borderLeft="1px solid" borderColor="gray.100">
-                <RowText fontWeight="600" fontSize="xs" color="gray.600" noOfLines={1}>
+                borderLeft="1px solid" borderColor={ROW_DIVISOR}>
+                <RowText fontWeight="600" fontSize="xs" color={ROW_TEXTO_FRACO} noOfLines={1}>
                     {item.convenio || "—"}
                 </RowText>
             </RowFlex>
 
             {/* MEDICO */}
-            <RowFlex flex={1.2} align="center" px={3} borderLeft="1px solid" borderColor="gray.100">
-                <RowText fontWeight="600" fontSize="xs" color="gray.700" noOfLines={1}>
+            <RowFlex flex={1.2} align="center" px={3} borderLeft="1px solid" borderColor={ROW_DIVISOR}>
+                <RowText fontWeight="600" fontSize="xs" color={ROW_TEXTO} noOfLines={1}>
                     {item.medico || "—"}
                 </RowText>
             </RowFlex>
 
             {/* VENDEDOR */}
-            <RowFlex flex={1.2} align="center" px={3} borderLeft="1px solid" borderColor="gray.100">
-                <RowText fontWeight="600" fontSize="xs" color="gray.700" noOfLines={1}>
+            <RowFlex flex={1.2} align="center" px={3} borderLeft="1px solid" borderColor={ROW_DIVISOR}>
+                <RowText fontWeight="600" fontSize="xs" color={ROW_TEXTO} noOfLines={1}>
                     {item.colaborador?.nome || "—"}
                 </RowText>
             </RowFlex>
 
             {/* PEDIDO / NF */}
-            <RowFlex flex={1.4} align="center" px={3} borderLeft="1px solid" borderColor="gray.100" direction="column" gap={0}>
-                <RowText fontWeight="700" fontSize="xs" color="gray.700" noOfLines={1}>
+            <RowFlex flex={1.4} align="center" px={3} borderLeft="1px solid" borderColor={ROW_DIVISOR} direction="column" gap={0}>
+                <RowText fontWeight="700" fontSize="xs" color={ROW_TEXTO} noOfLines={1}>
                     {item.pedidoProtheus || "—"}
                 </RowText>
                 {item.numeroNF && (

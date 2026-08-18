@@ -1,11 +1,9 @@
-// import { useContext } from "react";
 import {
   Flex as FlexBase,
   Box as BoxBase,
   Heading as HeadingBase,
   Button as ButtonBase,
   VStack as VStackBase,
-  SimpleGrid as SimpleGridBase,
   Divider as DividerBase,
   ButtonGroup as ButtonGroupBase,
   useToast,
@@ -18,15 +16,9 @@ import { useHistory, useParams } from 'react-router-dom';
 import { SubmitHandler } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import api from '../../service/api';
-// import * as yup from 'yup';
-// import { useState } from 'react';
-import { SelectCustom } from '../../components/selectCustom/SelectCustom';
-import { percentMask } from '../../helpers/percentMask';
-import { InputCustom } from '../../components/InputCustom/InputCustom';
 import { SiderbarResponsive } from '../../components/SiderbarResponsive';
 import { Wapper } from '../../components/Wapper';
-import { useAuth } from '../../context/AuthContext';
-import { useParametrizacao } from '../../context/ParametrizacaoContext';
+import { EmpresaFormFields } from '../../components/EmpresaFormFields';
 
 // Chakra UI v1 + TS strict estoura TS2590 ("union type too complex") quando
 // uma página mistura muitos componentes. Casting para any contorna o limite.
@@ -35,7 +27,6 @@ const Box = BoxBase as any;
 const Heading = HeadingBase as any;
 const Button = ButtonBase as any;
 const VStack = VStackBase as any;
-const SimpleGrid = SimpleGridBase as any;
 const Divider = DividerBase as any;
 const ButtonGroup = ButtonGroupBase as any;
 const Text = TextBase as any;
@@ -45,166 +36,261 @@ type IParams = {
   id: string;
 };
 
-type IFormInputs = {
-  excluido: string;
-  margemRentabilidade: string;
-  valorDesconto: string;
-  valorPercentualTabelaPreco: string;
-  percentualAprovacaoPedido: string;
-  produtoRentabilidadeAlta: string;
-  produtoRentabilidadeMedia: string;
-  produtoRentabilidadeBaixa: string;
-  integracaoPorEmpresa?: boolean | null;
-  multiplasTabelaPreco: boolean;
-  tipoPedido: TipoPedido[];
-  atendimentoPorRegiao: boolean;
-  utilizaOpme: boolean;
-  empresa: {
-    id: string;
-  };
-};
-
-type TipoPedido = {
-  id: string;
-  descricao: string;
-};
-
 export const CreateParams = () => {
-  const { user } = useAuth();
-
   const params = useParams<IParams>();
-  // const [formValues, setFormValues] = useState({});
-
-  // const schema = yup.object().shape({
-  // nome: yup.string().required("Campo Obrigatório"),
-  // descricao: yup.string().required("Campo Obrigatório"),
-  // });
 
   const { register, handleSubmit, formState, control, setValue } =
     useForm<any>();
-  //   {
-  //   resolver: yupResolver(schema),
-  //   defaultValues: useMemo(() => {
-  //     return formValues;
-  //   }, [formValues]),
-  // }
 
   const { errors } = formState;
   const toast = useToast();
   const history = useHistory();
-  const { recarregar } = useParametrizacao();
-  const [tipoPedido, setTipoPedido] = useState<TipoPedido[]>([]);
-  const [utilizaOpme, setUtilizaOpme] = useState(false);
-  const [logo, setLogo] = useState<Buffer | undefined>();
-
-  // Agendamento cirúrgico só existe quando a empresa usa OPME. Ele não é um
-  // registro em tipo_pedido — o app (ESF-APP-VALEZA, tab6) o adiciona à lista
-  // quando utiliza_opme = true. Replicamos o mesmo comportamento aqui.
-  const tiposPedidoExibidos: TipoPedido[] = utilizaOpme
-    ? [...tipoPedido, { id: 'agendamento', descricao: 'AGENDAMENTO' }]
-    : tipoPedido;
+  const [isSavingEmpresa, setIsSavingEmpresa] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [isSavingLogo, setIsSavingLogo] = useState(false);
+  // Muda a cada upload bem-sucedido só pra forçar o <img> a buscar de novo
+  // (o browser cachearia a mesma URL indefinidamente sem isso).
+  // Cada abertura da tela usa uma URL nova. O endpoint da API permite cache
+  // por uma hora; iniciar sempre em zero fazia o navegador reapresentar a
+  // imagem antiga mesmo depois de ela já ter sido alterada no banco.
+  const [logoVersion, setLogoVersion] = useState(() => Date.now());
 
   useEffect(() => {
     if (!params.id) return;
 
     api
-      .get(`/api-essencial/v1/parametrizacao/${params.id}`)
+      .get(`/empresa/${params.id}`)
       .then((response) => {
-        const dados = response.data[0];
+        const empresa = response.data;
+        if (!empresa) return;
 
-
-        setTipoPedido(dados.tipo_pedido || []);
-        setLogo(dados.empresas?.logo || undefined);
+        setValue('razaoSocial', empresa.razao_social || '');
+        setValue('fantasia', empresa.fantasia || '');
+        setValue('cnpj', empresa.cnpj || '');
+        setValue('ie', empresa.ie || '');
+        setValue('telefone', empresa.telefone || '');
         setValue(
-          'margemRentabilidade',
-          (Number(dados?.margem_rentabilidade) * 100).toFixed(2)
+          'limiteCredito',
+          String(Math.round(Number(empresa.limite_credito || 0) * 100))
         );
-        setValue('valorDesconto', (dados?.valor_desconto * 100).toFixed(2));
-        setValue(
-          'valorPercentualTabelaPreco',
-          (dados?.valor_percentual_tabela_preco * 100).toFixed(2)
-        );
-        setValue(
-          'percentualAprovacaoPedido',
-          Number(dados?.percentual_aprovacao_pedido).toFixed(2)
-        );
-        setValue(
-          'produtoRentabilidadeAlta',
-          Number(dados?.produto_rentabilidade_alta).toFixed(2)
-        );
-        setValue(
-          'produtoRentabilidadeMedia',
-          Number(dados?.produto_rentabilidade_media).toFixed(2)
-        );
-        setValue(
-          'produtoRentabilidadeBaixa',
-          Number(dados?.produto_rentabilidade_baixa)?.toFixed(2)
-        );
-        setValue(
-          'integracaoPorEmpresa',
-          String(!!dados?.integracao_por_empresa)
-        );
-        setValue(
-          'multiplasTabelaPreco',
-          String(!!dados?.multiplas_tabela_preco)
-        );
-        setValue('atendimentoPorRegiao', String(!!dados?.atendimento_por_regiao));
-        setValue('utilizaOpme', String(!!dados?.utiliza_opme));
-        setUtilizaOpme(!!dados?.utiliza_opme);
+        setValue('email', empresa.email || '');
+        setValue('emailXmlNfe', empresa.email_xml_nfe || '');
+        setValue('segmento', empresa.segmento || '');
+        setValue('observacaoEmpresa', empresa.observacao || '');
+        setValue('statusEmpresa', empresa.status_empresa || 'ATIVO');
+        setValue('filial', empresa.filial || '');
+        setValue('matriz', String(!!empresa.matriz));
       });
   }, [params, setValue]);
 
-  const onSubmit: SubmitHandler<IFormInputs> = async (data, e) => {
-    // Object.assign(data, {
-    const dados = {
-      empresa: { id: `${user.empresa.id}` },
-      margem_rentabilidade: Number(data?.margemRentabilidade),
-      valor_desconto: Number(data?.valorDesconto),
-      valor_percentual_tabela_preco: Number(data?.valorPercentualTabelaPreco),
-      percentual_aprovacao_pedido: Number(data?.percentualAprovacaoPedido),
-      produto_rentabilidade_alta: Number(data?.produtoRentabilidadeAlta),
-      produto_rentabilidade_media: Number(data?.produtoRentabilidadeMedia),
-      produto_rentabilidade_baixa: Number(data?.produtoRentabilidadeBaixa),
-      // A API trata integracao_por_empresa de forma diferente dos demais:
-      // ela compara `== "true"` (string), então este campo PRECISA ir como
-      // string "true"/"false" (o value do select). Os outros booleanos a API
-      // compara `== false`, então vão como boolean mesmo.
-      integracao_por_empresa: data?.integracaoPorEmpresa,
-      multiplas_tabela_preco: String(data?.multiplasTabelaPreco) === 'true',
-      atendimento_por_regiao: String(data?.atendimentoPorRegiao) === 'true',
-      utiliza_opme: String(data?.utilizaOpme) === 'true',
-      // excluido: false,
-      // });
+  // Converte "1.234,56" (currencyMask) para 1234.56.
+  const parseCurrency = (value?: string): number => {
+    if (!value) return 0;
+    return Number(String(value).replace(/\./g, '').replace(',', '.')) || 0;
+  };
+
+  const semValor = (v: any) => v === undefined || v === null || v === '';
+
+  const uploadLogo = async (file: File, empresaId: string) => {
+    const formData = new FormData();
+    formData.append('logo', file, file.name);
+
+    const baseURL = api.defaults.baseURL;
+    if (!baseURL) throw new Error('Endereço da API não configurado.');
+    const token = localStorage.getItem('@Aplication:token');
+
+    // Não definir Content-Type aqui: o navegador precisa acrescentar o
+    // boundary do multipart/form-data automaticamente.
+    const resp = await fetch(`${baseURL}/editar-empresa/${empresaId}`, {
+      method: 'PUT',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: formData,
+    });
+    const responseData = await resp.json().catch(() => null);
+
+    if (!resp.ok) {
+      throw new Error(
+        responseData?.message ||
+          responseData?.error ||
+          `Falha ao enviar a logomarca (HTTP ${resp.status}).`
+      );
+    }
+
+    // Confirma pelo endpoint de leitura que o mesmo binário foi persistido.
+    const savedLogoResponse = await fetch(
+      `${baseURL}/empresa/${empresaId}/logo?v=${Date.now()}`,
+      { cache: 'no-store' }
+    );
+
+    if (!savedLogoResponse.ok) {
+      throw new Error(
+        `A API respondeu ao envio, mas a logo não pôde ser confirmada (HTTP ${savedLogoResponse.status}).`
+      );
+    }
+
+    const savedLogo = await savedLogoResponse.blob();
+    const [sentBuffer, savedBuffer] = await Promise.all([
+      file.arrayBuffer(),
+      savedLogo.arrayBuffer(),
+    ]);
+    const sentBytes = new Uint8Array(sentBuffer);
+    const savedBytes = new Uint8Array(savedBuffer);
+    const sameBinary =
+      sentBytes.length === savedBytes.length &&
+      sentBytes.every((byte, index) => byte === savedBytes[index]);
+
+    if (!sameBinary) {
+      throw new Error(
+        `A logo retornada pela API não corresponde ao arquivo enviado (enviado: ${file.size} bytes; retornado: ${savedLogo.size} bytes).`
+      );
+    }
+
+    return savedLogo.size;
+  };
+
+  // PUT /editar-empresa/:id agora é parcial de verdade: campo ausente mantém
+  // o valor já salvo (a API não aceita string vazia em campos como email, e
+  // sobrescreveria à toa os que não têm string vazia como sentinela) — por
+  // isso removemos os campos vazios do payload em vez de mandar "".
+  const onSubmitEmpresa: SubmitHandler<any> = async (data) => {
+    const enderecoBruto = {
+      logradouro: data.endereco?.logradouro,
+      numero: data.endereco?.numero,
+      complemento: data.endereco?.complemento,
+      bairro: data.endereco?.bairro,
+      cidade: data.endereco?.cidade,
+      uf: data.endereco?.uf,
+      cep: data.endereco?.cep,
+      codigo_ibge: data.endereco?.codigoIbge,
+      ponto_referencia: data.endereco?.pontoReferencia,
     };
+    const enderecoPreenchido = Object.values(enderecoBruto).some((v) => !semValor(v));
 
-    if (params.id) {
-      // Object.assign(data, { id: params.id });
+    const dados: Record<string, any> = {
+      razao_social: data.razaoSocial,
+      fantasia: data.fantasia,
+      cnpj: data.cnpj,
+      ie: data.ie,
+      telefone: data.telefone,
+      limite_credito: parseCurrency(data.limiteCredito),
+      email: data.email,
+      email_xml_nfe: data.emailXmlNfe,
+      segmento: data.segmento,
+      observacao: data.observacaoEmpresa,
+      status_empresa: data.statusEmpresa,
+      filial: data.filial,
+      matriz: String(data.matriz) === 'true',
+    };
+    Object.keys(dados).forEach((k) => {
+      if (semValor(dados[k])) delete dados[k];
+    });
 
-      try {
-        await api.post(`/api-essencial/v1/parametrizacao/${params.id}`, dados);
-        toast({
-          title: 'Parametrização atualizado com sucesso',
-          description: ``,
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
-        // Aguarda o recarregar pra atualizar o cache (ex.: menu Mapa
-        // Cirúrgico via utiliza_opme) sem precisar sair e logar de novo.
-        await recarregar();
-        history.push('/listar/parametrizacao');
-      } catch (error) {
-        if (error) {
-          return toast({
-            title: 'Erro Inesperado',
-            description: 'Tente cadastrar daqui alguns minutos',
-            status: 'error',
-            duration: 3000,
-            isClosable: true,
-          });
-        }
+    // Só manda endereço se o usuário preencheu algo — sem isso o endereço já
+    // cadastrado (que o front não consegue ler hoje) fica intacto.
+    if (enderecoPreenchido) {
+      const enderecoLimpo: Record<string, any> = {};
+      Object.entries(enderecoBruto).forEach(([k, v]) => {
+        if (!semValor(v)) enderecoLimpo[k] = v;
+      });
+      // tipo_endereco/latitude/longitude não têm campo no formulário, mas o
+      // POST /cadastrar-empresas exige os três pra criar — manda um padrão
+      // sensato em vez de travar o cadastro por um dado que o usuário nem
+      // consegue preencher na tela.
+      if (semValor(enderecoLimpo.tipo_endereco)) enderecoLimpo.tipo_endereco = 'Comercial';
+      if (semValor(enderecoLimpo.latitude)) enderecoLimpo.latitude = 0;
+      if (semValor(enderecoLimpo.longitude)) enderecoLimpo.longitude = 0;
+      dados.endereco = enderecoLimpo;
+    }
+
+    setIsSavingEmpresa(true);
+    try {
+      let empresaId = params.id;
+
+      if (params.id) {
+        await api.put(`/editar-empresa/${params.id}`, dados);
+      } else {
+        const response = await api.post('/cadastrar-empresas', dados);
+        empresaId = response.data?.empresa_id;
       }
-      return;
+
+      // Selecionar uma imagem e usar o botão principal SALVAR também precisa
+      // persistir a logo. Antes, esse botão ignorava logoFile e navegava para
+      // fora da tela, apesar de a prévia local dar a impressão de que ela
+      // seria enviada.
+      if (logoFile) {
+        if (!empresaId) {
+          throw new Error(
+            'A empresa foi salva, mas a API não devolveu o ID necessário para enviar a logomarca.'
+          );
+        }
+        await uploadLogo(logoFile, empresaId);
+        setLogoFile(null);
+        setLogoVersion(Date.now());
+      }
+
+      toast({
+        title: params.id
+          ? 'Dados da empresa atualizados com sucesso'
+          : 'Empresa cadastrada com sucesso',
+        description: logoFile ? 'Logomarca confirmada pela API' : '',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      history.push('/listar/parametrizacao');
+    } catch (error: any) {
+      const apiErrors = error?.response?.data?.errors;
+      toast({
+        title: 'Erro Inesperado',
+        description: apiErrors?.[0]
+          ? `${apiErrors[0].field}: ${apiErrors[0].message}`
+          : error?.response?.data?.message ||
+            error?.message ||
+            'Tente novamente daqui alguns minutos',
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+    } finally {
+      setIsSavingEmpresa(false);
+    }
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLogoFile(e.target.files?.[0] || null);
+  };
+
+  const handleSaveLogo = async () => {
+    if (!logoFile || !params.id) return;
+
+    setIsSavingLogo(true);
+    try {
+      const savedLogoSize = await uploadLogo(logoFile, params.id);
+
+      toast({
+        title: 'Logomarca atualizada com sucesso',
+        description: `${savedLogoSize} bytes confirmados pela API`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      setLogoFile(null);
+      // Um timestamp é único entre recarregamentos da página; um contador que
+      // sempre volta a zero pode reutilizar ?v=1 e exibir a logo antiga.
+      setLogoVersion(Date.now());
+    } catch (error: any) {
+      toast({
+        title: 'Não foi possível salvar a logomarca',
+        description:
+          error?.message ||
+          error?.response?.data?.message ||
+          'Tente novamente daqui alguns minutos',
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+    } finally {
+      setIsSavingLogo(false);
     }
   };
 
@@ -217,200 +303,80 @@ export const CreateParams = () => {
         <Wapper>
           <Box flex="1" p="8" bg="gray.800" borderRadius={8} mb="16">
             <Heading size="md" fontWeight="normal">
-              PARAMETRIZAÇÃO
+              CADASTRO DE EMPRESAS
             </Heading>
 
             <Divider my="6" borderColor="gray.700" />
 
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <VStack spacing="6">
-                <SimpleGrid minChildWidth="240px" spacing="6" w="100%">
-                  {/* <InputCustom
-                    name="margemRentabilidade"
-                    label="Margem de rentabilidade (%)"
-                    errors={errors}
-                    control={control}
-                    masks={percentMask}
-                    minLength={3}
-                  /> */}
+            <VStack spacing="6" align="stretch">
+              <EmpresaFormFields
+                register={register}
+                control={control}
+                errors={errors}
+              />
 
-                  <InputCustom
-                    name="percentualAprovacaoPedido"
-                    label="Perc. aprovação pedidos (%)"
-                    errors={errors}
-                    control={control}
-                    masks={percentMask}
-                    minLength={3}
+              <Box>
+                <Text>Logomarca:</Text>
+                <Box bg={'gray.700'} borderRadius="lg" p={4} mt={2}>
+                  <Image
+                    boxSize="100px"
+                    mb={3}
+                    src={
+                      logoFile
+                        ? URL.createObjectURL(logoFile)
+                        : params.id
+                        ? `${api.defaults.baseURL}/empresa/${params.id}/logo?v=${logoVersion}`
+                        : ''
+                    }
+                    onError={(e: any) => { e.target.style.display = 'none'; }}
+                    onLoad={(e: any) => { e.target.style.display = 'block'; }}
+                    alt="Logo"
+                    objectFit="cover"
                   />
-
-                  <SelectCustom
-                    label="Tipo de Parametrização"
-                    placeholder="Selecione a opção"
-                    name="integracaoPorEmpresa"
-                    register={register}
-                    errorMessage={errors.integracaoPorEmpresa?.message}
-                    options={[
-                      { id: 'true', value: 'Parametrização por Empresa' },
-                      { id: 'false', value: 'Parametrização por Tabela' },
-                    ]}
-                    chave="value"
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    onChange={handleLogoChange}
                   />
+                  <Button
+                    type="button"
+                    display="block"
+                    mt={2}
+                    size="sm"
+                    colorScheme="orange"
+                    variant="outline"
+                    isDisabled={!logoFile || !params.id}
+                    isLoading={isSavingLogo}
+                    onClick={handleSaveLogo}
+                  >
+                    Salvar Logomarca
+                  </Button>
+                </Box>
+              </Box>
 
-                  <SelectCustom
-                    label="Empresa utiliza múltiplas tabelas de preço"
-                    name="multiplasTabelaPreco"
-                    register={register}
-                    errorMessage={errors.multiplasTabelaPreco?.message}
-                    options={[
-                      { id: 'true', value: 'Sim' },
-                      { id: 'false', value: 'Não' },
-                    ]}
-                    chave="value"
-                  />
-
-                  {/* <InputCustom
-                    name="valorDesconto"
-                    label="Valor do desconto (%)"
-                    errors={errors}
-                    control={control}
-                    masks={percentMask}
-                    minLength={3}
-                  /> */}
-                  {/* <InputCustom
-                    name="valorPercentualTabelaPreco"
-                    label="Valor percentual tabela (%)"
-                    errors={errors}
-                    control={control}
-                    masks={percentMask}
-                    minLength={3}
-                  /> */}
-                </SimpleGrid>
-
-                <Divider my="6" borderColor="gray.700" />
-
-                <SimpleGrid minChildWidth="240px" spacing="6" w="100%">
-                  <InputCustom
-                    name="produtoRentabilidadeAlta"
-                    label="Produto alta rentabilidade (%)"
-                    errors={errors}
-                    control={control}
-                    masks={percentMask}
-                    minLength={3}
-                  />
-
-                  <InputCustom
-                    name="produtoRentabilidadeMedia"
-                    label="Produto média rentabilidade (%)"
-                    errors={errors}
-                    control={control}
-                    masks={percentMask}
-                    minLength={3}
-                  />
-
-                  <InputCustom
-                    name="produtoRentabilidadeBaixa"
-                    label="Produto baixa rentabilidade (%)"
-                    errors={errors}
-                    control={control}
-                    masks={percentMask}
-                    minLength={3}
-                  />
-                </SimpleGrid>
-
-                <Divider my="6" borderColor="gray.700" />
-                <SimpleGrid minChildWidth="240px" spacing="6" w="100%">
-                  <SelectCustom
-                    label="Atendimento por região"
-                    name="atendimentoPorRegiao"
-                    register={register}
-                    errorMessage={errors.atendimentoPorRegiao?.message}
-                    options={[
-                      { id: 'true', value: 'Sim' },
-                      { id: 'false', value: 'Não' },
-                    ]}
-                    chave="value"
-                  />
-
-                  <SelectCustom
-                    label="Utiliza OPME"
-                    name="utilizaOpme"
-                    register={register}
-                    errorMessage={errors.utilizaOpme?.message}
-                    options={[
-                      { id: 'true', value: 'Sim' },
-                      { id: 'false', value: 'Não' },
-                    ]}
-                    chave="value"
-                  />
-
-                  <Box>
-                    <Text as="p" mb={2}>
-                      Tipos de pedido:
-                    </Text>
-                    <Box borderRadius="lg" p={4} bg={'gray.700'}>
-                      {tiposPedidoExibidos.length > 0 ? (
-                        tiposPedidoExibidos.map((item, index) => (
-                          <Text
-                            as="p"
-                            key={item.id || `tipo-pedido-${index}`}
-                            fontSize="lg"
-                            color="white"
-                          >
-                            {item.descricao}
-                          </Text>
-                        ))
-                      ) : (
-                        <Text fontSize="lg" color="white">
-                          Nenhum tipo de pedido encontrado.
-                        </Text>
-                      )}
-                    </Box>
-                  </Box>
-
-                  <Box>
-                    <Text>Logomarca:</Text>
-                    <Box bg={'gray.700'} borderRadius="lg" p={4} mt={2}>
-                      <Image
-                        // mx="auto"
-                        boxSize="100px"
-                        src={
-                          logo && typeof logo !== 'string' && 'data' in logo
-                            ? `data:image/png;base64,${btoa(
-                                String.fromCharCode(...(logo as any).data)
-                              )}`
-                            : ''
-                        }
-                        alt="Logo"
-                        objectFit="cover"
-                      />
-                    </Box>
-                  </Box>
-                </SimpleGrid>
-
-                <Flex w="100%" justify="flex-end">
-                  <ButtonGroup spacing="4">
-                    <Button
-                      fontSize="md"
-                      variant="outline"
-                      colorScheme="orange"
-                      onClick={() => {
-                        history.push('/listar/parametrizacao');
-                      }}
-                    >
-                      VOLTAR
-                    </Button>
-                    <Button
-                      fontSize="md"
-                      colorScheme="orange"
-                      type="submit"
-                      isLoading={formState.isSubmitting}
-                    >
-                      SALVAR
-                    </Button>
-                  </ButtonGroup>
-                </Flex>
-              </VStack>
-            </form>
+              <Flex w="100%" justify="flex-end">
+                <ButtonGroup spacing="4">
+                  <Button
+                    fontSize="md"
+                    variant="outline"
+                    colorScheme="orange"
+                    onClick={() => {
+                      history.push('/listar/parametrizacao');
+                    }}
+                  >
+                    VOLTAR
+                  </Button>
+                  <Button
+                    fontSize="md"
+                    colorScheme="orange"
+                    isLoading={isSavingEmpresa}
+                    onClick={handleSubmit(onSubmitEmpresa)}
+                  >
+                    SALVAR
+                  </Button>
+                </ButtonGroup>
+              </Flex>
+            </VStack>
           </Box>
         </Wapper>
       </Flex>

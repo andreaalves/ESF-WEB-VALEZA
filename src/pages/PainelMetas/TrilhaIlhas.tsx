@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useThemeMode } from '../../context/ThemeModeContext';
 import { AvatarBoneco, VendedorProgresso } from './TabuleiroTrilha';
+import { paletaCorrida } from './temaCorrida';
 
 // Jornada das Metas — visual "HUD metálico": trilho contínuo de metal escovado com
 // curvas em U, nós circulares (dial) e o mês atual num anel laranja brilhante.
@@ -165,6 +167,8 @@ export const TrilhaIlhas: React.FC<{
   mesSel: number;
   onVendedorClick?: (id: string) => void;
 }> = ({ meses, vendedores, mesSel, onVendedorClick }) => {
+  const { ehClaro } = useThemeMode();
+  const pal = paletaCorrida(ehClaro);
   const ref = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(1040);
   const [hover, setHover] = useState<{ v: VendedorProgresso; x: number; y: number } | null>(null);
@@ -263,8 +267,10 @@ export const TrilhaIlhas: React.FC<{
       <div
         style={{
           position: 'relative', width: '100%', height: H, borderRadius: 16,
-          background: 'radial-gradient(circle at 50% 0%, #1b2030 0%, #0e1118 60%, #0b0d13 100%)',
-          border: '1px solid #20242f', overflow: 'hidden',
+          background: ehClaro
+            ? 'radial-gradient(circle at 50% 0%, #ffffff 0%, #f7f8fc 55%, #e8ebf2 100%)'
+            : 'radial-gradient(circle at 50% 0%, #1b2030 0%, #0e1118 60%, #0b0d13 100%)',
+          border: `1px solid ${pal.painelBorder}`, overflow: 'hidden',
         }}
       >
         <style>{`@keyframes fluxoTrilha{to{stroke-dashoffset:-100}}`}</style>
@@ -314,7 +320,7 @@ export const TrilhaIlhas: React.FC<{
           return (
             <React.Fragment key={m}>
               <div style={{ position: 'absolute', top: cy - r / 2 - 30, left: cx - 90, width: 180, textAlign: 'center', zIndex: 10 }}>
-                <span style={{ color: atual ? LARANJA : '#e7e9f0', fontWeight: 800, fontSize: 14, letterSpacing: 1, textShadow: atual ? '0 0 8px rgba(254,128,38,0.6)' : 'none' }}>
+                <span style={{ color: atual ? LARANJA : pal.textoPrimario, fontWeight: 800, fontSize: 14, letterSpacing: 1, textShadow: atual ? '0 0 8px rgba(254,128,38,0.6)' : 'none' }}>
                   {NOMES[m - 1]}
                 </span>
               </div>
@@ -327,7 +333,7 @@ export const TrilhaIlhas: React.FC<{
 
               {temAlgumaMeta && !temMeta && !atual && (
                 <div style={{ position: 'absolute', top: cy + r / 2 + 8, left: cx - 90, width: 180, textAlign: 'center', zIndex: 10, lineHeight: 1.3 }}>
-                  <div style={{ color: '#6b7280', fontSize: 12, fontWeight: 600 }}>sem meta</div>
+                  <div style={{ color: pal.textoSecundario, fontSize: 12, fontWeight: 600 }}>sem meta</div>
                 </div>
               )}
             </React.Fragment>

@@ -13,6 +13,7 @@ import {
   Box,
 } from '@chakra-ui/react';
 import { useAuth } from '../../context/AuthContext';
+import { ThemeToggle } from '../../components/ThemeToggle';
 import logo from '../../assets/logo-arvore.png';
 
 type IData = {
@@ -55,6 +56,7 @@ export const Login = () => {
 
   return (
     <Flex w="100vw" h="100vh" align="center" justify="center">
+      <ThemeToggle flutuante size="md" />
       <Box width="100%" maxWidth={460}>
         <Flex bg="gray.800" p="8" flexDir="column">
           <Box mb="4">

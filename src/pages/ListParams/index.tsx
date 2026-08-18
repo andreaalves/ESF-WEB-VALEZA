@@ -47,7 +47,7 @@ export default function ListParams() {
     onOpen();
   }
 
-  const x = async (e: any, id: string) => {
+  const handleUpdate = async (e: any, id: string) => {
     try {
       await api.post(
         // `/api-essencial/v1/parametrizacao/update-excluido/${id}`,
@@ -85,7 +85,10 @@ export default function ListParams() {
     }
   };
 
-  const column = getColumn(handleDelete, '/edit/parametrizacao');
+  // "Cadastrar" (botão acima) leva pro cadastro de uma empresa nova
+  // (/cadastro/parametrizacao); o lápis de cada linha continua editando as
+  // regras de negócio desta lista.
+  const column = getColumn(handleDelete, '/edit/regras-parametrizacao');
 
   useEffect(() => {
     // if (user.empresa.id == "1" && user.role == "ROLE_ADMIN") {
@@ -94,8 +97,11 @@ export default function ListParams() {
     //   });
     // }
 
+    // Lista TODAS as empresas/filiais (GET /empresas), não só a do usuário
+    // logado — antes essa tela usava /parametrizacao/:id (escopado a uma
+    // única empresa) e por isso nunca mostrava filiais recém-cadastradas.
     api
-      .get(`/api-essencial/v1/parametrizacao/${user.empresa.id}`)
+      .get('/empresas')
       .then((response) => {
         setParametros(response.data);
       })
@@ -115,7 +121,7 @@ export default function ListParams() {
           <Box flex="1" p="8" bg="gray.800" borderRadius={8} mb="16">
             <Flex justify="space-between" align="center">
               <Heading size="md" fontWeight="normal">
-                PARAMETRIZAÇÃO
+                CADASTRO DE EMPRESAS
               </Heading>
               <Button
                 as="a"
@@ -124,11 +130,9 @@ export default function ListParams() {
                 colorScheme="orange"
                 leftIcon={<Icon as={RiAddLine} />}
                 cursor="pointer"
-                onClick={() =>
-                  history.push(`/edit/parametrizacao/${user.empresa.id}`)
-                }
+                onClick={() => history.push('/cadastro/parametrizacao')}
               >
-                Cadastrar
+                Cadastrar Empresa
               </Button>
             </Flex>
 
@@ -162,7 +166,7 @@ export default function ListParams() {
         onClose={onClose}
         label="parametros"
         deleteFunction={(e) => {
-          x(e, idToDelete);
+          handleUpdate(e, idToDelete);
           onClose();
         }}
       />

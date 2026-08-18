@@ -24,6 +24,10 @@ import {
   Box,
 } from '@chakra-ui/react';
 
+// react-icons recebe cor CSS crua (não aceita token do Chakra), então usamos a
+// CSS variable do token para o ícone acompanhar tema claro/escuro.
+const CorIcone = 'var(--chakra-colors-gray-50)';
+
 interface ITableContainerProps {
   columns: any[];
   data: any[];
@@ -42,12 +46,12 @@ const ReactTableComponent = ({
       <Flex alignItems="center">
         {column.isSorted ? (
           column.isSortedDesc ? (
-            <FiChevronDown color="white" size={12} />
+            <FiChevronDown color={CorIcone} size={12} />
           ) : (
-            <FiChevronUp color="white" size={12} />
+            <FiChevronUp color={CorIcone} size={12} />
           )
         ) : (
-          <FiChevronDown color="white" size={12} opacity={0} />
+          <FiChevronDown color={CorIcone} size={12} opacity={0} />
         )}
       </Flex>
     );
@@ -130,7 +134,7 @@ const ReactTableComponent = ({
                       {...column.getSortByToggleProps({ title: undefined })}
                       className="thead"
                     >
-                      <Text color="white">{column.render('Header')}</Text>
+                      <Text color="gray.50">{column.render('Header')}</Text>
                       {generateSortingIndicator(column)}
                     </Flex>
                   </Flex>

@@ -15,6 +15,7 @@ import { Header } from '../../components/Header';
 import { SiderbarResponsive } from '../../components/SiderbarResponsive';
 import { Wapper } from '../../components/Wapper';
 import { useAuth } from '../../context/AuthContext';
+import { useThemeMode } from '../../context/ThemeModeContext';
 import api from '../../service/api';
 import { useHistory } from 'react-router-dom';
 import { CorridaTabuleiro, CorridaTabelaClassificacao, ParticipanteCorrida } from './CorridaMetas';
@@ -142,6 +143,7 @@ function statusCasa(meta: number, realizado: number) {
 
 export const PainelMetas = () => {
   const { user } = useAuth();
+  const { ehClaro } = useThemeMode();
   const history = useHistory();
 
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
@@ -339,12 +341,12 @@ export const PainelMetas = () => {
         startAngle: -135,
         endAngle: 135,
         hollow: { size: '65%', background: 'transparent' },
-        track: { background: '#353646', strokeWidth: '100%' },
+        track: { background: ehClaro ? '#cfd3de' : '#353646', strokeWidth: '100%' },
         dataLabels: {
-          name: { show: true, color: '#9699B0', fontSize: '13px', offsetY: 24 },
+          name: { show: true, color: ehClaro ? '#6b7080' : '#9699B0', fontSize: '13px', offsetY: 24 },
           value: {
             show: true,
-            color: '#fff',
+            color: ehClaro ? '#1a1d26' : '#fff',
             fontSize: '32px',
             fontWeight: 800,
             offsetY: -12,
@@ -565,7 +567,7 @@ export const PainelMetas = () => {
                         <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb="1">
                           {card.label}
                         </Text>
-                        <Text fontSize={['lg', 'xl', '2xl']} fontWeight="800" color="white" lineHeight="1.1">
+                        <Text fontSize={['lg', 'xl', '2xl']} fontWeight="800" color="gray.50" lineHeight="1.1">
                           {card.value}
                         </Text>
                         {'detail' in card && card.detail && (
@@ -691,7 +693,7 @@ export const PainelMetas = () => {
                           <Box w="6px" h="6px" borderRadius="full" bg="orange.200" />
                         )}
                       </HStack>
-                      <Text fontSize="lg" fontWeight="800" color="white" lineHeight="1.1">
+                      <Text fontSize="lg" fontWeight="800" color="gray.50" lineHeight="1.1">
                         {meta > 0 ? `${st.pct.toFixed(0)}%` : '—'}
                       </Text>
                       <Box mt="1" mb="2" h="6px" w="100%" borderRadius="full" bg="whiteAlpha.200" overflow="hidden">

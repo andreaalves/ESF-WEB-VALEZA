@@ -68,7 +68,11 @@ type Categoria = { categoria_id: string; nome: string };
 type Produto = { produto_id: string; nome: string; categoria_id: string; codigo?: string };
 type SelectOption = { value: string; label: string };
 
-const COR_CAMPO_META = '#353646';
+// O react-select é estilizado por objeto JS (não aceita token do Chakra), então
+// apontamos para as CSS variables dos tokens para o campo seguir o tema
+// claro/escuro igual ao resto da tela.
+const COR_CAMPO_META = 'var(--chakra-colors-gray-700)';
+const COR_TEXTO_META = 'var(--chakra-colors-gray-50)';
 
 // "1.000.000,00" -> 1000000
 function parseMoeda(str: string): number {
@@ -91,7 +95,7 @@ const selectStyles = {
     backgroundColor: COR_CAMPO_META,
     borderColor: state.isFocused ? '#fe8026' : 'transparent',
     boxShadow: state.isFocused ? '0 0 0 1px #fe8026' : 'none',
-    color: '#fff',
+    color: COR_TEXTO_META,
     fontSize: 14,
     '&:hover': { borderColor: '#fe8026' },
   }),
@@ -106,7 +110,7 @@ const selectStyles = {
   menu: (base: any) => ({
     ...base,
     backgroundColor: COR_CAMPO_META,
-    border: '1px solid #4A5568',
+    border: '1px solid var(--chakra-colors-gray-600)',
     zIndex: 20,
   }),
   menuList: (base: any) => ({
@@ -117,15 +121,16 @@ const selectStyles = {
   option: (base: any, state: any) => ({
     ...base,
     backgroundColor: state.isSelected || state.isFocused ? '#fe8026' : COR_CAMPO_META,
-    color: '#fff',
+    // sobre o laranja o texto é sempre branco; fora dele acompanha o tema
+    color: state.isSelected || state.isFocused ? '#fff' : COR_TEXTO_META,
     fontSize: 14,
     '&:active': { backgroundColor: '#fe8026' },
   }),
-  singleValue: (base: any) => ({ ...base, color: '#fff' }),
-  input: (base: any) => ({ ...base, color: '#fff' }),
-  placeholder: (base: any) => ({ ...base, color: '#A0AEC0' }),
-  dropdownIndicator: (base: any) => ({ ...base, color: '#E2E8F0' }),
-  clearIndicator: (base: any) => ({ ...base, color: '#E2E8F0' }),
+  singleValue: (base: any) => ({ ...base, color: COR_TEXTO_META }),
+  input: (base: any) => ({ ...base, color: COR_TEXTO_META }),
+  placeholder: (base: any) => ({ ...base, color: 'var(--chakra-colors-gray-400)' }),
+  dropdownIndicator: (base: any) => ({ ...base, color: 'var(--chakra-colors-gray-100)' }),
+  clearIndicator: (base: any) => ({ ...base, color: 'var(--chakra-colors-gray-100)' }),
   indicatorSeparator: (base: any) => ({ ...base, backgroundColor: 'transparent' }),
 };
 

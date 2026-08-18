@@ -1,5 +1,6 @@
 import { Button, Flex, Text, Image } from '@chakra-ui/react';
 import { useAuth } from '../../context/AuthContext';
+import { ThemeToggle } from '../ThemeToggle';
 import logo from '../../assets/logo-arvore.png';
 
 export const Header = () => {
@@ -48,7 +49,10 @@ export const Header = () => {
           </Text>
 
           <Flex ml="auto" justify="center" align="center">
-            <Text mr="3">Olá, {user.name}!</Text>
+            <ThemeToggle />
+            <Text mr="3" ml="3">
+              Olá, {user.name}!
+            </Text>
             <Button
               size="sm"
               bg="blue.500"

@@ -15,6 +15,7 @@ import { FiTarget, FiBarChart2 } from 'react-icons/fi';
 
 import { SidebarItem } from '../SidebarItem';
 import { useParametrizacao } from '../../context/ParametrizacaoContext';
+import { useAuth } from '../../context/AuthContext';
 
 const NavFlex = Flex as React.ComponentType<any>;
 const NavDivider = Divider as React.ComponentType<any>;
@@ -22,6 +23,7 @@ const NavDivider = Divider as React.ComponentType<any>;
 export const SiderbarResponsive = () => {
   const [navSize, setNavSize] = useState('large');
   const { utilizaOpme } = useParametrizacao();
+  const { user } = useAuth();
 
   return (
     <NavFlex
@@ -60,8 +62,12 @@ export const SiderbarResponsive = () => {
         {utilizaOpme && (
           <SidebarItem name="Mapa Cirúrgico" nav={navSize} icon={HiOutlineLocationMarker} path="/mapa-cirurgico" />
         )}
-        <NavDivider w={navSize === 'large' ? '30px' : '220px'} transitionDuration="0.42s" ml={4} />
-        <SidebarItem name="Parametrização" nav={navSize} icon={IoSettingsOutline} path="/listar/parametrizacao" />
+        {user?.role === 'ROLE_ADMIN' && (
+          <>
+            <NavDivider w={navSize === 'large' ? '30px' : '220px'} transitionDuration="0.42s" ml={4} />
+            <SidebarItem name="Cadastro Empresas" nav={navSize} icon={IoSettingsOutline} path="/listar/parametrizacao" />
+          </>
+        )}
 
       </NavFlex>
     </NavFlex>

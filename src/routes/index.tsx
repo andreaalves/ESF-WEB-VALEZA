@@ -27,6 +27,7 @@ import Route from './Route';
 import ListItensOrder from '../pages/ListItensOrder';
 import { CreateLinkClient } from '../pages/CreateLinkClient';
 import { CreateParams } from '../pages/CreateParams';
+import { CreateRegrasParametrizacao } from '../pages/CreateRegrasParametrizacao';
 import { CreateMeta } from '../pages/CreateMeta';
 import { PainelMetas } from '../pages/PainelMetas';
 import ListMetas from '../pages/ListMetas';
@@ -247,6 +248,15 @@ export const Routes = () => {
           path="/listar/parametrizacao"
           component={ListParams}
           isPrivate
+          allowedRoles={['ROLE_ADMIN']}
+        />
+
+        <Route
+          exact
+          path="/cadastro/parametrizacao"
+          component={CreateParams}
+          isPrivate
+          allowedRoles={['ROLE_ADMIN']}
         />
 
         <Route
@@ -254,6 +264,15 @@ export const Routes = () => {
           path="/edit/parametrizacao/:id"
           component={CreateParams}
           isPrivate
+          allowedRoles={['ROLE_ADMIN']}
+        />
+
+        <Route
+          exact
+          path="/edit/regras-parametrizacao/:id"
+          component={CreateRegrasParametrizacao}
+          isPrivate
+          allowedRoles={['ROLE_ADMIN']}
         />
 
         <Route exact path="/dashboard" component={Dashboard} isPrivate />
