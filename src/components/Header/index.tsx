@@ -5,6 +5,7 @@ import { ThemeToggle } from '../ThemeToggle';
 import {
   lerVersaoLogo,
   ouvirLogoAtualizada,
+  recortarTransparencia,
   urlLogoEmpresa,
 } from '../../helpers/logoEmpresa';
 import logo from '../../assets/logo-arvore.png';
@@ -22,10 +23,29 @@ export const Header = () => {
 
   useEffect(() => ouvirLogoAtualizada(() => setVersaoLogo(lerVersaoLogo())), []);
 
-  // Empresa sem logo cadastrada faz o endpoint responder erro; nesse caso
-  // escondemos o bloco todo (imagem + divisória) e fica só a marca essencial.
-  // Ao trocar de URL (nova versão ou outra empresa) vale tentar de novo.
-  useEffect(() => setLogoComErro(false), [logoEmpresa]);
+  // Recorta o vazio transparente em volta do arquivo enviado para as duas
+  // marcas ficarem na mesma linha e com a mesma altura (48px).
+  const [srcLogoEmpresa, setSrcLogoEmpresa] = useState(logoEmpresa);
+
+  useEffect(() => {
+    let ativo = true;
+
+    // Empresa sem logo cadastrada faz o endpoint responder erro; nesse caso
+    // escondemos o bloco todo (imagem + divisória) e fica só a essencial. Ao
+    // trocar de URL (nova versão ou outra empresa) vale tentar de novo.
+    setLogoComErro(false);
+    setSrcLogoEmpresa(logoEmpresa);
+
+    if (logoEmpresa) {
+      recortarTransparencia(logoEmpresa).then((src) => {
+        if (ativo) setSrcLogoEmpresa(src);
+      });
+    }
+
+    return () => {
+      ativo = false;
+    };
+  }, [logoEmpresa]);
 
   return (
     <>
@@ -53,9 +73,9 @@ export const Header = () => {
           {!!logoEmpresa && !logoComErro && (
             <>
               <Image
-                h="56px"
-                maxW="160px"
-                src={logoEmpresa}
+                h="48px"
+                maxW="150px"
+                src={srcLogoEmpresa}
                 alt="Logo da empresa"
                 objectFit="contain"
                 onError={() => setLogoComErro(true)}

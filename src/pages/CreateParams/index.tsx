@@ -16,6 +16,7 @@ import { useHistory, useParams } from 'react-router-dom';
 import { SubmitHandler } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import api from '../../service/api';
+import { notificarLogoAtualizada } from '../../helpers/logoEmpresa';
 import { SiderbarResponsive } from '../../components/SiderbarResponsive';
 import { Wapper } from '../../components/Wapper';
 import { EmpresaFormFields } from '../../components/EmpresaFormFields';
@@ -225,7 +226,8 @@ export const CreateParams = () => {
         }
         await uploadLogo(logoFile, empresaId);
         setLogoFile(null);
-        setLogoVersion(Date.now());
+        // Avisa o Header (e outras abas) para trocar a logo na hora.
+        setLogoVersion(notificarLogoAtualizada());
       }
 
       toast({
@@ -276,8 +278,9 @@ export const CreateParams = () => {
       });
       setLogoFile(null);
       // Um timestamp é único entre recarregamentos da página; um contador que
-      // sempre volta a zero pode reutilizar ?v=1 e exibir a logo antiga.
-      setLogoVersion(Date.now());
+      // sempre volta a zero pode reutilizar ?v=1 e exibir a logo antiga. O
+      // helper grava essa versão e avisa o Header para trocar na hora.
+      setLogoVersion(notificarLogoAtualizada());
     } catch (error: any) {
       toast({
         title: 'Não foi possível salvar a logomarca',

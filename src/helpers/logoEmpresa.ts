@@ -45,3 +45,96 @@ export function ouvirLogoAtualizada(handler: () => void): () => void {
     window.removeEventListener('storage', handlerStorage);
   };
 }
+
+const cacheRecorte = new Map<string, string>();
+
+/**
+ * Devolve a imagem sem a moldura transparente em volta. A logo da Valeza, por
+ * exemplo, é um PNG quadrado com ~28% de vazio embaixo: com ele o `objectFit`
+ * encolhe a marca e joga ela pra cima, desalinhada do logo da essencial ao
+ * lado. Recortar no canvas alinha altura e linha para qualquer arquivo que
+ * venha de "Cadastro Empresas", sem número mágico no CSS. A API responde
+ * `Access-Control-Allow-Origin: *`, então o canvas não fica "tainted"; ainda
+ * assim, qualquer falha devolve a URL original e a logo continua aparecendo.
+ */
+export function recortarTransparencia(url: string): Promise<string> {
+  const emCache = cacheRecorte.get(url);
+  if (emCache) return Promise.resolve(emCache);
+
+  return new Promise((resolve) => {
+    const concluir = (src: string) => {
+      cacheRecorte.set(url, src);
+      resolve(src);
+    };
+
+    const img = new window.Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      try {
+        const { naturalWidth: largura, naturalHeight: altura } = img;
+        const canvas = document.createElement('canvas');
+        canvas.width = largura;
+        canvas.height = altura;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return concluir(url);
+
+        ctx.drawImage(img, 0, 0);
+        const { data } = ctx.getImageData(0, 0, largura, altura);
+
+        let topo = altura;
+        let base = -1;
+        let esquerda = largura;
+        let direita = -1;
+
+        for (let y = 0; y < altura; y += 1) {
+          for (let x = 0; x < largura; x += 1) {
+            if (data[(y * largura + x) * 4 + 3] > 10) {
+              if (y < topo) topo = y;
+              if (y > base) base = y;
+              if (x < esquerda) esquerda = x;
+              if (x > direita) direita = x;
+            }
+          }
+        }
+
+        const larguraCorte = direita - esquerda + 1;
+        const alturaCorte = base - topo + 1;
+
+        // Sem transparência em volta (JPEG, PNG já aparado) não há o que fazer.
+        if (
+          larguraCorte <= 0 ||
+          alturaCorte <= 0 ||
+          (larguraCorte === largura && alturaCorte === altura)
+        ) {
+          return concluir(url);
+        }
+
+        const recorte = document.createElement('canvas');
+        recorte.width = larguraCorte;
+        recorte.height = alturaCorte;
+        recorte
+          .getContext('2d')
+          ?.drawImage(
+            canvas,
+            esquerda,
+            topo,
+            larguraCorte,
+            alturaCorte,
+            0,
+            0,
+            larguraCorte,
+            alturaCorte
+          );
+
+        concluir(recorte.toDataURL('image/png'));
+      } catch {
+        concluir(url);
+      }
+    };
+
+    img.onerror = () => resolve(url);
+    img.src = url;
+  });
+}
