@@ -1,10 +1,31 @@
-import { Button, Flex, Text, Image } from '@chakra-ui/react';
+import { useEffect, useState } from 'react';
+import { Box, Button, Flex, Text, Image } from '@chakra-ui/react';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../ThemeToggle';
+import {
+  lerVersaoLogo,
+  ouvirLogoAtualizada,
+  urlLogoEmpresa,
+} from '../../helpers/logoEmpresa';
 import logo from '../../assets/logo-arvore.png';
 
 export const Header = () => {
   const { signOut, user } = useAuth();
+
+  // Logomarca da empresa logada (Valeza), servida pela API a partir do arquivo
+  // enviado em "Cadastro Empresas" — trocar a logo lá troca aqui na hora.
+  const empresaId = user?.empresa?.id;
+  const [versaoLogo, setVersaoLogo] = useState(lerVersaoLogo);
+  const [logoComErro, setLogoComErro] = useState(false);
+
+  const logoEmpresa = urlLogoEmpresa(empresaId, versaoLogo);
+
+  useEffect(() => ouvirLogoAtualizada(() => setVersaoLogo(lerVersaoLogo())), []);
+
+  // Empresa sem logo cadastrada faz o endpoint responder erro; nesse caso
+  // escondemos o bloco todo (imagem + divisória) e fica só a marca essencial.
+  // Ao trocar de URL (nova versão ou outra empresa) vale tentar de novo.
+  useEffect(() => setLogoComErro(false), [logoEmpresa]);
 
   return (
     <>
@@ -26,8 +47,30 @@ export const Header = () => {
           pr="6"
           mx="auto"
           w="100%"
+          align="center"
           justify="space-between"
         >
+          {!!logoEmpresa && !logoComErro && (
+            <>
+              <Image
+                h="56px"
+                maxW="160px"
+                src={logoEmpresa}
+                alt="Logo da empresa"
+                objectFit="contain"
+                onError={() => setLogoComErro(true)}
+              />
+              <Box
+                w="1px"
+                h="32px"
+                mx="4"
+                bg="gray.600"
+                borderRadius="full"
+                flexShrink={0}
+              />
+            </>
+          )}
+
           <Image
             mr="2"
             boxSize="48px"
