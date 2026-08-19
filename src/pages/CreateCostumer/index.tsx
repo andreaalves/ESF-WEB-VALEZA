@@ -142,6 +142,7 @@ export const CreateCostumer: React.FC = () => {
       setValue('ie', response.data.ie);
       setValue('emailCopiaPedido', response.data.email_copia_pedido);
       setValue('emailXmlNfe', response.data.email_xml_nfe);
+      setValue('condicaoPagamento', response.data.condicao_pagamento);
       setValue('colaborador', colaboradorFormatado);
       setValue('limiteCredito', response.data.limite_credito);
       setValue('segmento', response.data.segmento);
@@ -323,19 +324,13 @@ export const CreateCostumer: React.FC = () => {
                     options={sellersList}
                     chave="nome"
                   />
-                  {/* <SelectCustom
+                  <InputCustom
+                    name="condicaoPagamento"
                     label="Condição de Pagamento"
                     isDisabled
-                    placeholder="Selecione a opção"
-                    name="condicaoPagamento"
-                    errorMessage={errors.condicaoPagamento?.message}
+                    errors={errors}
                     register={register}
-                    options={[
-                      { id: 'PARCELADO', paymentMethod: 'Parcelado' },
-                      { id: 'AVISTA', paymentMethod: 'À vista' },
-                    ]}
-                    chave="paymentMethod"
-                  /> */}
+                  />
                   <InputCustom
                     name="limiteCredito"
                     label="Limite de Crédito"

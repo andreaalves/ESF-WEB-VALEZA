@@ -35,6 +35,10 @@ export function getColumn(
       accessor: 'colaboradores.nome',
     },
     {
+      Header: 'Condição de Pagamento',
+      accessor: 'condicao_pagamento',
+    },
+    {
       Header: ' ',
       Cell: ({ row }: any) => (
         <Flex as="main" alignItems="center" justifyContent="end">
