@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Box, Button, Flex, Text, Image } from '@chakra-ui/react';
+import { useHistory } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../ThemeToggle';
 import {
@@ -12,6 +13,8 @@ import logo from '../../assets/logo-arvore.png';
 
 export const Header = () => {
   const { signOut, user } = useAuth();
+  const history = useHistory();
+  const irParaPedidos = () => history.push('/listar/pedido');
 
   // Logomarca da empresa logada (Valeza), servida pela API a partir do arquivo
   // enviado em "Cadastro Empresas" — trocar a logo lá troca aqui na hora.
@@ -70,46 +73,53 @@ export const Header = () => {
           align="center"
           justify="space-between"
         >
-          {!!logoEmpresa && !logoComErro && (
-            <>
-              <Image
-                h="48px"
-                maxW="150px"
-                src={srcLogoEmpresa}
-                alt="Logo da empresa"
-                objectFit="contain"
-                onError={() => setLogoComErro(true)}
-              />
-              <Box
-                w="1px"
-                h="32px"
-                mx="4"
-                bg="gray.600"
-                borderRadius="full"
-                flexShrink={0}
-              />
-            </>
-          )}
+          <Flex
+            align="center"
+            cursor="pointer"
+            onClick={irParaPedidos}
+            title="Ir para pedidos"
+          >
+            {!!logoEmpresa && !logoComErro && (
+              <>
+                <Image
+                  h="48px"
+                  maxW="150px"
+                  src={srcLogoEmpresa}
+                  alt="Logo da empresa"
+                  objectFit="contain"
+                  onError={() => setLogoComErro(true)}
+                />
+                <Box
+                  w="1px"
+                  h="32px"
+                  mx="4"
+                  bg="gray.600"
+                  borderRadius="full"
+                  flexShrink={0}
+                />
+              </>
+            )}
 
-          <Image
-            mr="2"
-            boxSize="48px"
-            src={logo}
-            alt="Logo essencial"
-            objectFit="contain"
-          />
-          <Text fontFamily="kallisto" fontSize="2xl" fontWeight="bold">
-            essencial
-            <Text
-              as="span"
-              fontFamily="kallisto"
-              fontSize="sm"
-              ml="2"
-              color="orange.200"
-            >
-              Sales Force
+            <Image
+              mr="2"
+              boxSize="48px"
+              src={logo}
+              alt="Logo essencial"
+              objectFit="contain"
+            />
+            <Text fontFamily="kallisto" fontSize="2xl" fontWeight="bold">
+              essencial
+              <Text
+                as="span"
+                fontFamily="kallisto"
+                fontSize="sm"
+                ml="2"
+                color="orange.200"
+              >
+                Sales Force
+              </Text>
             </Text>
-          </Text>
+          </Flex>
 
           <Flex ml="auto" justify="center" align="center">
             <ThemeToggle />
