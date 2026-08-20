@@ -54,6 +54,7 @@ type IFormInputs = {
   multiplasTabelaPreco: boolean;
   tipoPedido: TipoPedido[];
   atendimentoPorRegiao: boolean;
+  condicaoPgtoCliente: boolean;
   utilizaOpme: boolean;
   empresa: {
     id: string;
@@ -133,6 +134,7 @@ export const CreateRegrasParametrizacao = () => {
           String(!!dados?.multiplas_tabela_preco)
         );
         setValue('atendimentoPorRegiao', String(!!dados?.atendimento_por_regiao));
+        setValue('condicaoPgtoCliente', String(!!dados?.condicao_pgto_cliente));
         setValue('utilizaOpme', String(!!dados?.utiliza_opme));
         setUtilizaOpme(!!dados?.utiliza_opme);
       });
@@ -156,6 +158,7 @@ export const CreateRegrasParametrizacao = () => {
       integracao_por_empresa: data?.integracaoPorEmpresa,
       multiplas_tabela_preco: String(data?.multiplasTabelaPreco) === 'true',
       atendimento_por_regiao: String(data?.atendimentoPorRegiao) === 'true',
+      condicao_pgto_cliente: String(data?.condicaoPgtoCliente) === 'true',
       utiliza_opme: String(data?.utilizaOpme) === 'true',
     };
 
@@ -229,6 +232,18 @@ export const CreateRegrasParametrizacao = () => {
                     name="multiplasTabelaPreco"
                     register={register}
                     errorMessage={errors.multiplasTabelaPreco?.message}
+                    options={[
+                      { id: 'true', value: 'Sim' },
+                      { id: 'false', value: 'Não' },
+                    ]}
+                    chave="value"
+                  />
+
+                  <SelectCustom
+                    label="Condição de pagamento por cliente"
+                    name="condicaoPgtoCliente"
+                    register={register}
+                    errorMessage={errors.condicaoPgtoCliente?.message}
                     options={[
                       { id: 'true', value: 'Sim' },
                       { id: 'false', value: 'Não' },
