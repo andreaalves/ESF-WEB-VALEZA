@@ -13,7 +13,9 @@ export function lerVersaoLogo(): string {
  * logo antiga do cache mesmo depois de a API já ter gravado a nova.
  */
 export function urlLogoEmpresa(empresaId?: string, versao = ''): string {
-  if (!empresaId) return '';
+  // baseURL pode vir de variável de ambiente (REACT_APP_BASE_URL) e não estar
+  // definida; sem essa guarda a URL sairia como "undefined/empresa/...".
+  if (!empresaId || !api.defaults.baseURL) return '';
   const base = `${api.defaults.baseURL}/empresa/${empresaId}/logo`;
   return versao ? `${base}?v=${versao}` : base;
 }
