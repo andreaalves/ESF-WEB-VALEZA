@@ -111,10 +111,10 @@ export const Login = () => {
               w="100%"
               type="submit"
               mt="6"
-              bg="blue.500"
+              bg="orange.200"
               color="white"
               _hover={{
-                bg: 'blue.700',
+                bg: '#e56b16',
               }}
               isLoading={formState.isSubmitting}
             >

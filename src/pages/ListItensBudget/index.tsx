@@ -30,6 +30,7 @@ import {
 } from 'react-icons/ai';
 
 import { useAuth } from '../../context/AuthContext';
+import { podeAprovarPedido } from '../../utils/podeAprovarPedido';
 import { ExcludeDialogOrder } from '../../components/ExcludeDialogOrder';
 
 export default function ListItensBudget() {
@@ -139,7 +140,7 @@ export default function ListItensBudget() {
               <Heading size="md" fontWeight="normal">
                 ITENS DO ORÇAMENTO
               </Heading>
-              {user.role === 'ROLE_MANAGER' &&
+              {podeAprovarPedido(user?.role) &&
                 !isLoading &&
                 orders.length !== 0 && (
                   <Button

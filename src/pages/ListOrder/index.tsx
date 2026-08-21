@@ -23,6 +23,7 @@ import { SiderbarResponsive } from '../../components/SiderbarResponsive';
 import { Wapper } from '../../components/Wapper';
 import OrderInfoModal from '../../components/OrderInfoModal';
 import { useAuth } from '../../context/AuthContext';
+import { podeAprovarPedido } from '../../utils/podeAprovarPedido';
 import { InputCustom } from '../../components/InputCustom/InputCustom';
 import { useForm } from 'react-hook-form';
 
@@ -52,8 +53,8 @@ export default function ListOrder() {
 
   const toast = useToast();
 
-  // Só gerentes (qualquer variação: regional, nacional, etc.) podem aprovar.
-  const isGerente = !!user?.role?.startsWith('ROLE_MANAGER');
+  // Gerentes (qualquer variação: regional, nacional, etc.) e o admin podem aprovar.
+  const isGerente = podeAprovarPedido(user?.role);
 
   useEffect(() => {
     async function getParams() {

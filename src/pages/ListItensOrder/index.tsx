@@ -31,6 +31,8 @@ import {
 
 import { useAuth } from '../../context/AuthContext';
 import { ExcludeDialogOrder } from '../../components/ExcludeDialogOrder';
+import { parseErroIntegracao } from '../../utils/parseErroIntegracao';
+import { podeAprovarPedido } from '../../utils/podeAprovarPedido';
 
 export default function ListItensOrder() {
   type IParams = {
@@ -103,6 +105,19 @@ export default function ListItensOrder() {
     '/edit'
   );
 
+  const erroIntegracao =
+    String(dados?.situacao || '').toUpperCase() === 'ERRO_INTEGRACAO'
+      ? parseErroIntegracao(dados?.payload_recebido)
+      : null;
+
+  // Tenta achar o nome do produto apontado pelo Protheus entre os itens do pedido
+  const produtoErroNome: string | null =
+    (erroIntegracao?.produto &&
+      dados?.item_pedido?.find(
+        (ip: any) => ip?.produtos?.codigo === erroIntegracao.produto
+      )?.produtos?.nome) ||
+    null;
+
   const total = orders.reduce((acc, valor: any) => {
     return acc + valor.quantidade * valor.preco_liquido;
   }, 0);
@@ -139,7 +154,7 @@ export default function ListItensOrder() {
               <Heading size="md" fontWeight="normal">
                 ITENS DO PEDIDOS
               </Heading>
-              {user.role === 'ROLE_MANAGER' &&
+              {podeAprovarPedido(user?.role) &&
               !isLoading &&
               orders.length !== 0 &&
               dados.situacao === 'EM_ANALISE' ? (
@@ -201,6 +216,48 @@ export default function ListItensOrder() {
             </Flex>
 
             <Divider my="6" borderColor="gray.700" />
+
+            {!isLoading && erroIntegracao && (
+              <VStack
+                alignItems="stretch"
+                spacing={2}
+                mb={6}
+                p={4}
+                border="1px solid"
+                borderColor="red.500"
+                borderRadius="md"
+                bg="gray.900"
+              >
+                <Text fontSize="14px" fontWeight="bold" color="red.300">
+                  ⚠ MOTIVO DO ERRO DE INTEGRAÇÃO (TOTVS)
+                </Text>
+                <Text fontSize="14px" color="gray.100">
+                  {erroIntegracao.motivo}
+                </Text>
+                {erroIntegracao.produto && (
+                  <Text fontSize="14px" color="gray.100">
+                    <Text as="span" fontWeight="bold" textColor="gray.200">
+                      PRODUTO APONTADO:{' '}
+                    </Text>
+                    {erroIntegracao.produto}
+                    {produtoErroNome ? ` - ${produtoErroNome}` : ''}
+                  </Text>
+                )}
+                <Box
+                  as="pre"
+                  maxH="160px"
+                  overflowY="auto"
+                  p={2}
+                  fontSize="11px"
+                  whiteSpace="pre-wrap"
+                  color="gray.400"
+                  bg="gray.800"
+                  borderRadius="md"
+                >
+                  {erroIntegracao.texto}
+                </Box>
+              </VStack>
+            )}
 
             <Flex alignItems="center" justifyContent="center">
               {isLoading ? (
