@@ -240,7 +240,7 @@ export const CreateRegrasParametrizacao = () => {
                   />
 
                   <SelectCustom
-                    label="Condição de pagamento por cliente"
+                    label="Usar condição de pagamento do cliente"
                     name="condicaoPgtoCliente"
                     register={register}
                     errorMessage={errors.condicaoPgtoCliente?.message}
