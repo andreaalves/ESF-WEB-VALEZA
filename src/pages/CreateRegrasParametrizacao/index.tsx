@@ -94,50 +94,80 @@ export const CreateRegrasParametrizacao = () => {
   useEffect(() => {
     if (!params.id) return;
 
+    // Campo vazio (em vez de "NaN") quando o valor não veio: empresa recém
+    // cadastrada não tem parametrização, e `Number(undefined).toFixed(2)`
+    // imprimia "NaN" em todos os campos.
+    const percentual = (valor: any) =>
+      Number.isFinite(Number(valor)) ? (Number(valor) * 100).toFixed(2) : '';
+    const numero = (valor: any) =>
+      Number.isFinite(Number(valor)) ? Number(valor).toFixed(2) : '';
+
+    const preencher = (dados: any) => {
+      setTipoPedido(dados?.tipo_pedido || []);
+      setValue('margemRentabilidade', percentual(dados?.margem_rentabilidade));
+      setValue('valorDesconto', percentual(dados?.valor_desconto));
+      setValue(
+        'valorPercentualTabelaPreco',
+        percentual(dados?.valor_percentual_tabela_preco)
+      );
+      setValue(
+        'percentualAprovacaoPedido',
+        numero(dados?.percentual_aprovacao_pedido)
+      );
+      setValue(
+        'produtoRentabilidadeAlta',
+        numero(dados?.produto_rentabilidade_alta)
+      );
+      setValue(
+        'produtoRentabilidadeMedia',
+        numero(dados?.produto_rentabilidade_media)
+      );
+      setValue(
+        'produtoRentabilidadeBaixa',
+        numero(dados?.produto_rentabilidade_baixa)
+      );
+      setValue('integracaoPorEmpresa', String(!!dados?.integracao_por_empresa));
+      setValue('multiplasTabelaPreco', String(!!dados?.multiplas_tabela_preco));
+      setValue('atendimentoPorRegiao', String(!!dados?.atendimento_por_regiao));
+      setValue('condicaoPgtoCliente', String(!!dados?.condicao_pgto_cliente));
+      setValue('utilizaOpme', String(!!dados?.utiliza_opme));
+      setUtilizaOpme(!!dados?.utiliza_opme);
+    };
+
     api
       .get(`/api-essencial/v1/parametrizacao/${params.id}`)
-      .then((response) => {
-        const dados = response.data[0];
+      .then(async (response) => {
+        const dados = response.data?.[0];
+        if (dados) {
+          preencher(dados);
+          return;
+        }
 
-        setTipoPedido(dados.tipo_pedido || []);
-        setValue(
-          'margemRentabilidade',
-          (Number(dados?.margem_rentabilidade) * 100).toFixed(2)
-        );
-        setValue('valorDesconto', (dados?.valor_desconto * 100).toFixed(2));
-        setValue(
-          'valorPercentualTabelaPreco',
-          (dados?.valor_percentual_tabela_preco * 100).toFixed(2)
-        );
-        setValue(
-          'percentualAprovacaoPedido',
-          Number(dados?.percentual_aprovacao_pedido).toFixed(2)
-        );
-        setValue(
-          'produtoRentabilidadeAlta',
-          Number(dados?.produto_rentabilidade_alta).toFixed(2)
-        );
-        setValue(
-          'produtoRentabilidadeMedia',
-          Number(dados?.produto_rentabilidade_media).toFixed(2)
-        );
-        setValue(
-          'produtoRentabilidadeBaixa',
-          Number(dados?.produto_rentabilidade_baixa)?.toFixed(2)
-        );
-        setValue(
-          'integracaoPorEmpresa',
-          String(!!dados?.integracao_por_empresa)
-        );
-        setValue(
-          'multiplasTabelaPreco',
-          String(!!dados?.multiplas_tabela_preco)
-        );
-        setValue('atendimentoPorRegiao', String(!!dados?.atendimento_por_regiao));
-        setValue('condicaoPgtoCliente', String(!!dados?.condicao_pgto_cliente));
-        setValue('utilizaOpme', String(!!dados?.utiliza_opme));
-        setUtilizaOpme(!!dados?.utiliza_opme);
-      });
+        // Filial recém-cadastrada ainda não tem parametrização própria: a tela
+        // quebrava aqui (`dados.tipo_pedido` de undefined). Em vez de abrir em
+        // branco, herda as regras da MATRIZ como ponto de partida — filial nova
+        // nasce com as mesmas regras, e o admin ajusta o que for diferente.
+        // Nada é gravado até salvar, e o POST usa o id da URL (a empresa desta
+        // tela), então salvar aqui não mexe na parametrização da matriz.
+        const empresas = await api
+          .get('/empresas')
+          .then((r) => (r.data || []) as any[])
+          .catch(() => [] as any[]);
+        const matriz = empresas.find((e) => e?.matriz);
+
+        if (!matriz?.empresa_id || matriz.empresa_id === params.id) {
+          preencher(undefined);
+          return;
+        }
+
+        const daMatriz = await api
+          .get(`/api-essencial/v1/parametrizacao/${matriz.empresa_id}`)
+          .then((r) => r.data?.[0])
+          .catch(() => undefined);
+
+        preencher(daMatriz);
+      })
+      .catch(() => preencher(undefined));
   }, [params, setValue]);
 
   const onSubmit: SubmitHandler<IFormInputs> = async (data) => {
@@ -228,7 +258,7 @@ export const CreateRegrasParametrizacao = () => {
                   />
 
                   <SelectCustom
-                    label="Empresa utiliza múltiplas tabelas de preço"
+                    label="Definir tabela de preço por cliente"
                     name="multiplasTabelaPreco"
                     register={register}
                     errorMessage={errors.multiplasTabelaPreco?.message}
@@ -240,7 +270,7 @@ export const CreateRegrasParametrizacao = () => {
                   />
 
                   <SelectCustom
-                    label="Usar condição de pagamento do cliente"
+                    label="Condição de pagamento por cliente"
                     name="condicaoPgtoCliente"
                     register={register}
                     errorMessage={errors.condicaoPgtoCliente?.message}

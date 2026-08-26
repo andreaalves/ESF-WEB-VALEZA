@@ -8,6 +8,7 @@ import {
   HiOutlineDocumentReport,
   HiOutlineUserAdd,
   HiOutlineLocationMarker,
+  HiOutlineIdentification,
 } from 'react-icons/hi';
 import { IoSettingsOutline } from 'react-icons/io5';
 import { RiMoneyDollarCircleLine } from 'react-icons/ri';
@@ -65,6 +66,7 @@ export const SiderbarResponsive = () => {
         {user?.role === 'ROLE_ADMIN' && (
           <>
             <NavDivider w={navSize === 'large' ? '30px' : '220px'} transitionDuration="0.42s" ml={4} />
+            <SidebarItem name="Usuários" nav={navSize} icon={HiOutlineIdentification} path="/listar/usuario" />
             <SidebarItem name="Cadastro Empresas" nav={navSize} icon={IoSettingsOutline} path="/listar/parametrizacao" />
           </>
         )}

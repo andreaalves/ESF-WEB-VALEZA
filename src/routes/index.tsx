@@ -9,6 +9,7 @@ import { CreateProducts } from '../pages/CreateProducts';
 import { CreateProvider } from '../pages/CreateProvider';
 import { CreateShipingCompany } from '../pages/CreateShippingCompany';
 import { CreateUser } from '../pages/CreateUser';
+import { CreateInternalUser } from '../pages/CreateInternalUser';
 import { CreateScheduling } from '../pages/CreateScheduling';
 import { Home } from '../pages/Home';
 import ListCategory from '../pages/ListCategory';
@@ -19,6 +20,7 @@ import ListProduct from '../pages/ListProduct';
 import ListProvider from '../pages/ListProvider';
 import ListShippingCompany from '../pages/ListShippingCompany';
 import ListUser from '../pages/ListUser';
+import ListInternalUser from '../pages/ListInternalUser';
 import ListTableProducts from '../pages/ListTableProducts';
 import ListScheduling from '../pages/ListScheduling';
 import { Login } from '../pages/Login';
@@ -92,6 +94,30 @@ export const Routes = () => {
         />
 
         <Route exact path="/listar/vendedor" component={ListUser} isPrivate />
+
+        <Route
+          exact
+          path="/listar/usuario"
+          component={ListInternalUser}
+          isPrivate
+          allowedRoles={['ROLE_ADMIN']}
+        />
+
+        <Route
+          exact
+          path="/cadastro/usuario"
+          component={CreateInternalUser}
+          isPrivate
+          allowedRoles={['ROLE_ADMIN']}
+        />
+
+        <Route
+          exact
+          path="/edit/usuario/:id"
+          component={CreateInternalUser}
+          isPrivate
+          allowedRoles={['ROLE_ADMIN']}
+        />
 
         <Route exact path="/listar/meta" component={ListMetas} isPrivate />
         <Route exact path="/cadastro/meta" component={CreateMeta} isPrivate />
