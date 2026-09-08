@@ -4,10 +4,10 @@ import { useHistory } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../ThemeToggle';
 import {
+  baixarLogoEmpresa,
   lerVersaoLogo,
   ouvirLogoAtualizada,
   recortarTransparencia,
-  urlLogoEmpresa,
 } from '../../helpers/logoEmpresa';
 import logo from '../../assets/logo-arvore.png';
 
@@ -20,35 +20,50 @@ export const Header = () => {
   // enviado em "Cadastro Empresas" — trocar a logo lá troca aqui na hora.
   const empresaId = user?.empresa?.id;
   const [versaoLogo, setVersaoLogo] = useState(lerVersaoLogo);
-  const [logoComErro, setLogoComErro] = useState(false);
-
-  const logoEmpresa = urlLogoEmpresa(empresaId, versaoLogo);
 
   useEffect(() => ouvirLogoAtualizada(() => setVersaoLogo(lerVersaoLogo())), []);
 
-  // Recorta o vazio transparente em volta do arquivo enviado para as duas
-  // marcas ficarem na mesma linha e com a mesma altura (48px).
-  const [srcLogoEmpresa, setSrcLogoEmpresa] = useState(logoEmpresa);
+  // `src` já pronto do `<img>`. Vazio = sem logo para mostrar (empresa sem
+  // logo cadastrada, ou download que falhou): o bloco todo some e fica só a
+  // marca da essencial.
+  const [srcLogoEmpresa, setSrcLogoEmpresa] = useState('');
 
   useEffect(() => {
     let ativo = true;
+    // O object URL do download é revogado no cleanup; o do recorte é um
+    // data: URL cacheado no helper, que não pode ser revogado.
+    let objectUrl = '';
 
-    // Empresa sem logo cadastrada faz o endpoint responder erro; nesse caso
-    // escondemos o bloco todo (imagem + divisória) e fica só a essencial. Ao
-    // trocar de URL (nova versão ou outra empresa) vale tentar de novo.
-    setLogoComErro(false);
-    setSrcLogoEmpresa(logoEmpresa);
+    // A logo não pode mais ir direto no `src`: a rota exige token e o
+    // navegador não manda o header do axios. Baixamos pelo axios e exibimos o
+    // blob; o recorte tira o vazio transparente em volta do arquivo para as
+    // duas marcas ficarem na mesma linha e com a mesma altura (48px).
+    setSrcLogoEmpresa('');
 
-    if (logoEmpresa) {
-      recortarTransparencia(logoEmpresa).then((src) => {
-        if (ativo) setSrcLogoEmpresa(src);
+    baixarLogoEmpresa(empresaId, versaoLogo).then((url) => {
+      if (!url) return;
+
+      // Trocou de empresa/versão enquanto baixava: descarta este resultado.
+      if (!ativo) {
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      objectUrl = url;
+      setSrcLogoEmpresa(url);
+
+      // A chave do cache é a empresa+versão, não o object URL: este muda a
+      // cada download e nunca acertaria o cache.
+      recortarTransparencia(url, `${empresaId}:${versaoLogo}`).then((recortada) => {
+        if (ativo) setSrcLogoEmpresa(recortada);
       });
-    }
+    });
 
     return () => {
       ativo = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [logoEmpresa]);
+  }, [empresaId, versaoLogo]);
 
   return (
     <>
@@ -79,7 +94,7 @@ export const Header = () => {
             onClick={irParaPedidos}
             title="Ir para pedidos"
           >
-            {!!logoEmpresa && !logoComErro && (
+            {!!srcLogoEmpresa && (
               <>
                 <Image
                   h="48px"
@@ -87,7 +102,6 @@ export const Header = () => {
                   src={srcLogoEmpresa}
                   alt="Logo da empresa"
                   objectFit="contain"
-                  onError={() => setLogoComErro(true)}
                 />
                 <Box
                   w="1px"

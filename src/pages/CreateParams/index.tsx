@@ -118,9 +118,16 @@ export const CreateParams = () => {
     }
 
     // Confirma pelo endpoint de leitura que o mesmo binário foi persistido.
+    // O token vai junto: `GET /empresa/:id/logo` passou a exigir autenticação
+    // (commits `Feat: isAuthenticated` do ESF-API), então sem o header esta
+    // conferência respondia 401 e o upload — que tinha dado certo — era
+    // relatado como falha.
     const savedLogoResponse = await fetch(
       `${baseURL}/empresa/${empresaId}/logo?v=${Date.now()}`,
-      { cache: 'no-store' }
+      {
+        cache: 'no-store',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      }
     );
 
     if (!savedLogoResponse.ok) {
