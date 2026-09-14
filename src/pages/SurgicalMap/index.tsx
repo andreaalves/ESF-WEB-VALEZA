@@ -43,6 +43,8 @@ interface Scheduling {
     colaborador: { nome: string };
     paciente?: string;
     medico?: string;
+    valorPedido?: number;        // pedido.valor_pedido — total do pedido no TOTVS
+    condicaoPagamento?: string;  // pedido.condicao_pagamento, ex "30/60/90 DD"
     mensagens?: PedidoMensagem[]; // mensagens/comentários do pedido (backend, mais recente primeiro)
     pedidoProtheus?: string;
     statusWorkflow: StatusWorkflow;
@@ -192,7 +194,7 @@ const TIPO_FILTER_OPTIONS: [TipoCirurgia, string][] = [
 const STATUS_CFG: Record<StatusWorkflow, { label: string; dotColor: string; textColor: string; textDark: string; icon?: any; empty: string }> = {
     AGENDADO:             { label: "AGENDADO",              dotColor: "#ED8936", textColor: "#ED8936", textDark: "#C05621", icon: FaRegCalendarAlt,    empty: "Itens agendados aparecerão aqui." },
     NOTA_FISCAL:          { label: "NOTA FISCAL",           dotColor: "#4299E1", textColor: "#4299E1", textDark: "#2B6CB0", icon: FaFileInvoiceDollar, empty: "Itens faturados aparecerão aqui." },
-    EM_ROTA:              { label: "EM ROTA",               dotColor: "#ECC94B", textColor: "#ECC94B", textDark: "#B7791F", icon: FaRoute,             empty: "Cirurgias enviadas para entrega aparecerão aqui." },
+    EM_ROTA:              { label: "EM ROTA",               dotColor: "#ECC94B", textColor: "#ECC94B", textDark: "#B7791F", icon: FaRoute,             empty: "Pedidos enviados para entrega aparecerão aqui." },
     ENTREGUE:             { label: "ENTREGUE",              dotColor: "#48BB78", textColor: "#48BB78", textDark: "#276749", icon: FaTruck,             empty: "Itens entregues aparecerão aqui." },
     APONTADO_REALIZADO:   { label: "APONTADO / REALIZADO",  dotColor: "#B794F4", textColor: "#B794F4", textDark: "#553C9A", icon: FaClipboardCheck,    empty: "Itens apontados ou realizados aparecerão aqui." },
     AGUARDANDO_DEVOLUCAO: { label: "AGUARDANDO DEVOLUÇÃO",  dotColor: "#FC8181", textColor: "#FC8181", textDark: "#C53030", icon: FaUndoAlt,           empty: "Itens aguardando devolução aparecerão aqui." },
@@ -900,6 +902,13 @@ function temFimConfiavel(item: Scheduling): boolean {
 // (faturamentoObservadoEm, ver registrarFaturamentoObservado acima); sem
 // nenhum dos dois, mostramos "Faturado" sem número em vez de inventar um
 // tempo a partir de ultima_alteracao (comprovadamente não confiável).
+// Valor do pedido em reais. Pedido sem valor (ainda não veio do ERP) mostra "—"
+// em vez de "R$ 0,00", que se confundiria com um pedido realmente zerado.
+function formatBRL(valor?: number): string {
+    if (valor == null || Number.isNaN(valor)) return "—";
+    return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 function tempoNoSistema(item: Scheduling): { hours: number; label: string; state: TempoState } | null {
     if (!item.dataEmissao) return null;
     const inicio = inicioReal(item);
@@ -1045,8 +1054,8 @@ function MapRow({ item }: { item: Scheduling }) {
                 </RowText>
             </RowFlex>
 
-            {/* HOSPITAL */}
-            <RowFlex flex={1.4} align="center" px={3} borderLeft="1px solid" borderColor={DIV} direction="column" gap={0} alignItems="flex-start" justify="center">
+            {/* CLIENTE */}
+            <RowFlex flex={1.8} align="center" px={3} borderLeft="1px solid" borderColor={DIV} direction="column" gap={0} alignItems="flex-start" justify="center">
                 <RowText fontWeight="700" fontSize="sm" color={tipoColor} noOfLines={1}>
                     {item.cliente?.razaoSocial}
                 </RowText>
@@ -1055,10 +1064,10 @@ function MapRow({ item }: { item: Scheduling }) {
                 )}
             </RowFlex>
 
-            {/* DATA PROCEDIMENTO — data da cirurgia; consignado/venda não têm
-                agendamento, aí mostra a emissão do pedido com o rótulo avisando. */}
+            {/* DATA DO PEDIDO — data de entrega agendada quando existe; na falta
+                dela (o caso comum na expedição) mostra a emissão do pedido. */}
             <RowFlex flex={1.3} align="center" px={3} borderLeft="1px solid" borderColor={DIV} direction="column" gap={0} alignItems="flex-start" justify="center"
-                title={item.dataCirurgia ? "Data da cirurgia (agendada pelo vendedor)" : "Pedido sem cirurgia agendada — mostrando a data de emissão do pedido"}>
+                title={item.dataCirurgia ? "Data de entrega agendada pelo vendedor" : "Pedido sem entrega agendada — mostrando a data de emissão do pedido"}>
                 <RowText fontWeight="600" fontSize="sm" color={TXT_STRONG} noOfLines={1}>{dataLabel}</RowText>
                 {item.horaCirurgia ? (
                     <RowText fontSize="11px" color={TXT_SECONDARY} noOfLines={1}>{item.horaCirurgia}</RowText>
@@ -1067,25 +1076,17 @@ function MapRow({ item }: { item: Scheduling }) {
                 )}
             </RowFlex>
 
-            {/* PACIENTE */}
-            <RowFlex flex={1.8} align="center" px={3} borderLeft="1px solid" borderColor={DIV}>
-                <RowText fontWeight="700" fontSize="sm" color={item.paciente ? TXT_DARK : TXT_PLACEHOLDER} noOfLines={1}>
-                    {item.paciente || "—"}
+            {/* VALOR */}
+            <RowFlex flex={1.1} align="center" justify="flex-end" px={3} borderLeft="1px solid" borderColor={DIV}>
+                <RowText fontWeight="700" fontSize="sm" color={item.valorPedido != null ? TXT_DARK : TXT_PLACEHOLDER} noOfLines={1}>
+                    {formatBRL(item.valorPedido)}
                 </RowText>
             </RowFlex>
 
-            {/* CONVENIO */}
-            <RowFlex flex={0.9} align="center" justify="center" px={2}
-                borderLeft="1px solid" borderColor={DIV}>
-                <RowText fontWeight="600" fontSize="xs" color={item.convenio ? TXT_BODY : TXT_PLACEHOLDER} noOfLines={1}>
-                    {item.convenio || "—"}
-                </RowText>
-            </RowFlex>
-
-            {/* MEDICO */}
-            <RowFlex flex={1.2} align="center" px={3} borderLeft="1px solid" borderColor={DIV}>
-                <RowText fontWeight="600" fontSize="xs" color={item.medico ? TXT_BODY : TXT_PLACEHOLDER} noOfLines={1}>
-                    {item.medico || "—"}
+            {/* COND. PAGAMENTO */}
+            <RowFlex flex={1.3} align="center" px={3} borderLeft="1px solid" borderColor={DIV}>
+                <RowText fontWeight="600" fontSize="xs" color={item.condicaoPagamento ? TXT_BODY : TXT_PLACEHOLDER} noOfLines={1} title={item.condicaoPagamento}>
+                    {item.condicaoPagamento || "—"}
                 </RowText>
             </RowFlex>
 
@@ -1372,7 +1373,7 @@ function KanbanCard({ item, onClick, materiais }: { item: Scheduling; onClick: (
 
                 {/* Data / NF / pedido — ícones coloridos, mesmo formato das linhas acima */}
                 <RowFlex align="flex-start" gap={3} mb={1} mt={2}
-                    title={item.dataCirurgia ? "Data da cirurgia (agendada pelo vendedor)" : "Pedido sem cirurgia agendada — data de emissão do pedido"}>
+                    title={item.dataCirurgia ? "Data de entrega (agendada pelo vendedor)" : "Pedido sem entrega agendada — data de emissão do pedido"}>
                     <Icon as={FaRegClock} w={3} h={3} color="#F6E05E" flexShrink={0} mt="3px" />
                     <RowBox minW={0}>
                         <RowText fontSize="12px" fontWeight="600" color={dateTextColor} noOfLines={1} lineHeight="1.3">
@@ -1657,14 +1658,13 @@ function DetailModal({
         ["Extrato ERP", item.erpExtractStatus ? `${item.erpExtractStatus.label} (${item.erpExtractStatus.kind} ${item.erpExtractStatus.code})` : "—"],
         ["Tipo", tipoLabelOf(item.tipo)],
         ["Origem", item.origem === "APP" ? "APP" : "PROTHEUS (ERP)"],
-        ["Hospital", item.cliente?.razaoSocial || "—"],
+        ["Cliente", item.cliente?.razaoSocial || "—"],
         ["Filial", item.filialNome || "—"],
         ["Região", rotuloRegiao(item.regiao)],
-        [item.dataCirurgia ? "Data da cirurgia" : "Data do pedido (sem cirurgia agendada)", dataLabel || "—"],
+        [item.dataCirurgia ? "Data de entrega" : "Data do pedido (sem entrega agendada)", dataLabel || "—"],
         ["Tempo no sistema", tempoLabel],
-        ["Paciente", item.paciente || "—"],
-        ["Médico", item.medico || "—"],
-        ["Convênio", item.convenio || "—"],
+        ["Valor do pedido", formatBRL(item.valorPedido)],
+        ["Condição de pagamento", item.condicaoPagamento || "—"],
         ["Vendedor", item.colaborador?.nome || "—"],
         ["Pedido", item.pedidoProtheus || "—"],
         ["Nota fiscal", item.numeroNF || "—"],
@@ -2202,6 +2202,10 @@ export default function SurgicalMap() {
                         filialCodigo: filialDoPedido(p).codigo ?? p.__empresa?.codigo,
                         filialNome: filialDoPedido(p).nome ?? p.__empresa?.nome,
                         regiao: p.clientes?.regiao || undefined,
+                        // Decimal do Prisma chega como string no JSON — Number() aqui
+                        // para a coluna VALOR poder formatar em moeda.
+                        valorPedido: p.valor_pedido != null ? Number(p.valor_pedido) : undefined,
+                        condicaoPagamento: p.condicao_pagamento || undefined,
                         paciente: pac || agend?.paciente || undefined,
                         medico: (codMed ? medById[codMed] : undefined) || agend?.medico?.nome || nomeMed || undefined,
                         mensagens: mensagensPorPedido[p.pedido_id] || [],
@@ -2445,14 +2449,17 @@ export default function SurgicalMap() {
     const pageItems = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
     const firstRow = filtered.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
     const lastRow = Math.min(currentPage * itemsPerPage, filtered.length);
+    // Colunas da expedição. Paciente/Convênio/Médico saíram: vinham dos campos
+    // OPME do Protheus (C5_PACIENT, C5_CODMEDI, C5_CODCONV), que não existem no
+    // ERP de um laticínio e chegavam sempre vazios. No lugar entram dados que o
+    // pedido já traz do TOTVS: valor e condição de pagamento.
     const TABLE_COLS = [
-        { label: "HOSPITAL",          flex: 1.4 },
-        { label: "DATA PROCEDIMENTO", flex: 1.3 },
-        { label: "PACIENTE",          flex: 1.8 },
-        { label: "CONVENIO",          flex: 0.9 },
-        { label: "MEDICO",            flex: 1.2 },
+        { label: "CLIENTE",           flex: 1.8 },
+        { label: "DATA DO PEDIDO",    flex: 1.3 },
+        { label: "VALOR",             flex: 1.1 },
+        { label: "COND. PAGAMENTO",   flex: 1.3 },
         { label: "VENDEDOR",          flex: 1.2 },
-        { label: "PEDIDO / NF",        flex: 1.4 },
+        { label: "PEDIDO / NF",       flex: 1.4 },
     ];
 
     if (isLoading) {
@@ -2493,7 +2500,7 @@ export default function SurgicalMap() {
                     borderColor="orange.500"
                 >
                     <Text fontWeight="semibold" fontSize="xl" color="gray.50">
-                        MAPA CIRÚRGICO{viewMode === "kanban" ? " — KANBAN" : ""}
+                        MAPA DE EXPEDIÇÃO{viewMode === "kanban" ? " — KANBAN" : ""}
                     </Text>
                 </Box>
                 )}
@@ -2929,7 +2936,7 @@ export default function SurgicalMap() {
                                         {hasError
                                             ? "Erro ao carregar dados. Verifique a conexão com o servidor."
                                             : scheduling.length === 0
-                                                ? "Nenhum agendamento encontrado."
+                                                ? "Nenhum pedido encontrado."
                                                 : "Nenhum registro encontrado para os filtros selecionados."}
                                     </Text>
                                     {hasError && (

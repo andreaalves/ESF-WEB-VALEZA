@@ -61,12 +61,15 @@ export const SiderbarResponsive = () => {
         <SidebarItem name="Vendedores" nav={navSize} icon={HiOutlineUserAdd} path="/listar/vendedor" />
         <SidebarItem name="Metas" nav={navSize} icon={FiTarget} path="/listar/meta" />
         <SidebarItem name="Painel de Metas" nav={navSize} icon={FiBarChart2} path="/painel/metas" />
-        {/* Mapa Cirúrgico, Kanban e Dashboard são padrão para todas as empresas
+        {/* Mapa de Expedição, Kanban e Dashboard são padrão para todas as empresas
             (antes o Mapa dependia de utiliza_opme). O campo utiliza_opme segue
             existindo na parametrização — ainda governa os tipos de pedido em
             CreateRegrasParametrizacao e é lido pelo app Ionic —, só não decide
-            mais a visibilidade destes itens. */}
-        <SidebarItem name="Mapa Cirúrgico" nav={navSize} icon={HiOutlineLocationMarker} path="/mapa-cirurgico" />
+            mais a visibilidade destes itens.
+            A Valeza é um laticínio, não OPME: o nome exibido é "Mapa de Expedição".
+            As ROTAS seguem /mapa-cirurgico para não quebrar links já salvos e
+            favoritos dos usuários. */}
+        <SidebarItem name="Mapa de Expedição" nav={navSize} icon={HiOutlineLocationMarker} path="/mapa-cirurgico" />
         <SidebarItem name="Kanban" nav={navSize} icon={FaColumns} path="/mapa-cirurgico/kanban" />
         <SidebarItem name="Dashboard" nav={navSize} icon={FaChartPie} path="/mapa-cirurgico/dashboard" />
         <SidebarItem name="Em Rota" nav={navSize} icon={FaTruck} path="/entregas" />
