@@ -14,6 +14,31 @@
  * O atributo data-theme é escrito por src/context/ThemeModeContext.tsx.
  */
 
+/*
+ * MAPA DE EXPEDIÇÃO — superfícies próprias (prefixo --sm-)
+ * ---------------------------------------------------------------------------
+ * A tela pinta cards, modal e comentários com hex próprio (navy escuro), fora
+ * da escala gray.* do Chakra, mas o TEXTO deles usa tokens (gray.50/100/400,
+ * whiteAlpha.*) que se invertem com o tema. Por isso cada superfície vira uma
+ * variable aqui: valor escuro no :root, sobrescrito no bloco light abaixo.
+ *
+ * Sem estas declarações as var() do index.tsx resolvem para vazio e o modal de
+ * detalhe abre TRANSPARENTE, deixando ler os cards por baixo.
+ */
+:root {
+  --sm-card-bg: #1f2233;
+  --sm-card-bg-hover: #272b40;
+  --sm-card-bg-cancel: #191b28;
+  --sm-card-ink: #ffffff;
+  --sm-modal-bg: #1f2233;
+  --sm-comment-bg: rgba(254, 128, 38, 0.12);
+  --sm-comment-author: rgba(255, 255, 255, 0.6);
+  --sm-select-text: #e8eaf2;
+  --sm-select-bg: #1f2233;
+  --sm-select-border: #3a3f57;
+  --sm-select-border-hover: #4d5372;
+}
+
 html[data-theme='light'] {
   /* Superfícies — a ordem relativa da escala escura é preservada:
      no escuro gray.700 é mais claro que gray.800/900, então no claro
@@ -104,4 +129,20 @@ html[data-theme='light'] .apexcharts-tooltip {
   background: #ffffff;
   color: #1a1d26;
   border: 1px solid var(--chakra-colors-gray-600);
+}
+
+/* Mapa de Expedição no tema claro: as mesmas superfícies em tons claros, para
+   o texto (que vira escuro junto com os tokens) continuar legível. */
+html[data-theme='light'] {
+  --sm-card-bg: #ffffff;
+  --sm-card-bg-hover: #f2f4fa;
+  --sm-card-bg-cancel: #eceef5;
+  --sm-card-ink: #1a1d26;
+  --sm-modal-bg: #ffffff;
+  --sm-comment-bg: rgba(254, 128, 38, 0.10);
+  --sm-comment-author: rgba(26, 29, 38, 0.55);
+  --sm-select-text: #1a1d26;
+  --sm-select-bg: #ffffff;
+  --sm-select-border: #cfd3de;
+  --sm-select-border-hover: #8b90a1;
 }
