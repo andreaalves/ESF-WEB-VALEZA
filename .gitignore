@@ -1,3 +1,18 @@
 node_modules
 build
 CLAUDE.md
+
+# Variáveis de ambiente locais (token Mapbox etc) — nunca versionar.
+.env
+.env.local
+.env.production
+
+# ~/Documents fica sob o FileProvider do iCloud, que trava leituras em massa
+# (o npm start fica a 0% de CPU e nunca compila). Por isso node_modules é um
+# symlink para ~/dev-modules/ESF-WEB-VALEZA, fora do iCloud.
+# node_modules.old é o backup da instalação antiga — pode ser apagado.
+node_modules.nosync
+node_modules.old
+
+# Lixo do Finder (macOS)
+.DS_Store

@@ -23,7 +23,6 @@ import { Wapper } from '../../components/Wapper';
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { ExcludeDialog } from '../../components/ExlcudeDialog';
-import apiIntegrador from '../../service/apiIntegrador';
 
 export default function ListProduct() {
   const [products, setProducts] = useState([]);
@@ -55,7 +54,7 @@ export default function ListProduct() {
     });
 
     try {
-      const responseCategorias = await apiIntegrador.get(
+      const responseCategorias = await api.get(
         '/get-categorias-from-erp'
       );
 
@@ -91,7 +90,7 @@ export default function ListProduct() {
 
     try {
       setIsLoading(true);
-      const responseProdutos = await apiIntegrador.get('/get-produto-from-erp');
+      const responseProdutos = await api.get('/get-produto-from-erp');
 
       if (responseProdutos.status === 200) {
         toast({
@@ -125,7 +124,7 @@ export default function ListProduct() {
 
     try {
       setIsLoading(true);
-      const responseTabelaPreco = await apiIntegrador.get(
+      const responseTabelaPreco = await api.get(
         '/get-tabelas-preco-from-erp'
       );
 
@@ -169,7 +168,7 @@ export default function ListProduct() {
 
     try {
       setIsLoading(true);
-      const responseColaboradores = await apiIntegrador.get(
+      const responseColaboradores = await api.get(
         '/get-colaborador-from-erp'
       );
 
@@ -213,7 +212,7 @@ export default function ListProduct() {
 
     try {
       setIsLoading(true);
-      const responseClientes = await apiIntegrador.get('/get-cliente-from-erp');
+      const responseClientes = await api.get('/get-cliente-from-erp');
 
       if (responseClientes.status === 200) {
         toast({
@@ -254,7 +253,7 @@ export default function ListProduct() {
     }
     try {
       setIsLoading(true);
-      const responseItensTabelaPrecoProduto = await apiIntegrador.get(
+      const responseItensTabelaPrecoProduto = await api.get(
         '/get-tabela-preco-produto-from-erp'
       );
 

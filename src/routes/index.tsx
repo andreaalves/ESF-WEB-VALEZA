@@ -38,6 +38,11 @@ import { Dashboard } from '../pages/Dashboard';
 import ListBudget from '../pages/ListBudget';
 import ListItensBudget from '../pages/ListItensBudget';
 import SurgicalMap from '../pages/SurgicalMap';
+import { MapaCirurgicoDashboard } from '../pages/MapaCirurgicoDashboard';
+// Mapa ao vivo das entregas, portado da SUPLEN. Fica em EmRota para não
+// colidir com a tela Entregas que a VALEZA já tinha (/listar/entregas).
+import EmRota from '../pages/EmRota';
+import Canhotos from '../pages/Canhotos';
 import AgendamentoDetail from '../pages/AgendamentoDetail';
 import RastreamentoEntrega from '../pages/RastreamentoEntrega';
 import Apontamento from '../pages/Apontamento';
@@ -303,6 +308,21 @@ export const Routes = () => {
 
         <Route exact path="/dashboard" component={Dashboard} isPrivate />
         <Route exact path="/mapa-cirurgico" component={SurgicalMap} isPrivate />
+        {/* Lista e Kanban são o MESMO componente: ele decide a visão pela rota
+            (ver viewMode em SurgicalMap), então o Kanban é item próprio do menu
+            em vez de um botão dentro da tela. */}
+        <Route
+          exact
+          path="/mapa-cirurgico/kanban"
+          component={SurgicalMap}
+          isPrivate
+        />
+        <Route
+          exact
+          path="/mapa-cirurgico/dashboard"
+          component={MapaCirurgicoDashboard}
+          isPrivate
+        />
         <Route exact path="/listar/orcamento" component={ListBudget} isPrivate />
         <Route exact path="/listar/orcamento/:id" component={ListItensBudget} isPrivate />
 
@@ -310,6 +330,34 @@ export const Routes = () => {
         <Route exact path="/rastreamento" component={RastreamentoEntrega} isPrivate />
         <Route exact path="/apontamento" component={Apontamento} isPrivate />
         <Route exact path="/listar/entregas" component={Entregas} isPrivate />
+        <Route
+          exact
+          path="/entregas"
+          component={EmRota}
+          isPrivate
+          allowedRoles={[
+            'ROLE_ADMIN',
+            'ROLE_SUPERVISOR',
+            'ROLE_COORDINATOR',
+            'ROLE_MANAGER',
+            'ROLE_MANAGER_REGIONAL',
+            'ROLE_MANAGER_NATIONAL',
+          ]}
+        />
+        <Route
+          exact
+          path="/entregas/canhotos"
+          component={Canhotos}
+          isPrivate
+          allowedRoles={[
+            'ROLE_ADMIN',
+            'ROLE_SUPERVISOR',
+            'ROLE_COORDINATOR',
+            'ROLE_MANAGER',
+            'ROLE_MANAGER_REGIONAL',
+            'ROLE_MANAGER_NATIONAL',
+          ]}
+        />
 
         <Route exact path="/teste" component={PagesTest} isPrivate />
       </Switch>

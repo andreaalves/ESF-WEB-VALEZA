@@ -4,6 +4,7 @@ import { theme } from "./styles/theme";
 import { AuthProvider } from "./context/AuthContext";
 import { ParametrizacaoProvider } from "./context/ParametrizacaoContext";
 import { ThemeModeProvider } from "./context/ThemeModeContext";
+import { SidebarProvider } from "./context/SidebarContext";
 import "./styles/style.css";
 import "./styles/light-theme.css";
 // import "./estilo.css";
@@ -16,7 +17,9 @@ export function App() {
         <ThemeModeProvider>
           <AuthProvider>
             <ParametrizacaoProvider>
-              <Routes />
+              <SidebarProvider>
+                <Routes />
+              </SidebarProvider>
             </ParametrizacaoProvider>
           </AuthProvider>
         </ThemeModeProvider>

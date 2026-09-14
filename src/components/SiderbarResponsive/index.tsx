@@ -14,16 +14,17 @@ import { IoSettingsOutline } from 'react-icons/io5';
 import { RiMoneyDollarCircleLine } from 'react-icons/ri';
 import { FiTarget, FiBarChart2 } from 'react-icons/fi';
 
+import { FaColumns, FaChartPie, FaTruck, FaFileSignature } from 'react-icons/fa';
+
 import { SidebarItem } from '../SidebarItem';
-import { useParametrizacao } from '../../context/ParametrizacaoContext';
 import { useAuth } from '../../context/AuthContext';
+import { useSidebar } from '../../context/SidebarContext';
 
 const NavFlex = Flex as React.ComponentType<any>;
 const NavDivider = Divider as React.ComponentType<any>;
 
 export const SiderbarResponsive = () => {
-  const [navSize, setNavSize] = useState('large');
-  const { utilizaOpme } = useParametrizacao();
+  const { navSize, setNavSize } = useSidebar();
   const { user } = useAuth();
 
   return (
@@ -60,9 +61,16 @@ export const SiderbarResponsive = () => {
         <SidebarItem name="Vendedores" nav={navSize} icon={HiOutlineUserAdd} path="/listar/vendedor" />
         <SidebarItem name="Metas" nav={navSize} icon={FiTarget} path="/listar/meta" />
         <SidebarItem name="Painel de Metas" nav={navSize} icon={FiBarChart2} path="/painel/metas" />
-        {utilizaOpme && (
-          <SidebarItem name="Mapa Cirúrgico" nav={navSize} icon={HiOutlineLocationMarker} path="/mapa-cirurgico" />
-        )}
+        {/* Mapa Cirúrgico, Kanban e Dashboard são padrão para todas as empresas
+            (antes o Mapa dependia de utiliza_opme). O campo utiliza_opme segue
+            existindo na parametrização — ainda governa os tipos de pedido em
+            CreateRegrasParametrizacao e é lido pelo app Ionic —, só não decide
+            mais a visibilidade destes itens. */}
+        <SidebarItem name="Mapa Cirúrgico" nav={navSize} icon={HiOutlineLocationMarker} path="/mapa-cirurgico" />
+        <SidebarItem name="Kanban" nav={navSize} icon={FaColumns} path="/mapa-cirurgico/kanban" />
+        <SidebarItem name="Dashboard" nav={navSize} icon={FaChartPie} path="/mapa-cirurgico/dashboard" />
+        <SidebarItem name="Em Rota" nav={navSize} icon={FaTruck} path="/entregas" />
+        <SidebarItem name="Canhotos" nav={navSize} icon={FaFileSignature} path="/entregas/canhotos" />
         {user?.role === 'ROLE_ADMIN' && (
           <>
             <NavDivider w={navSize === 'large' ? '30px' : '220px'} transitionDuration="0.42s" ml={4} />
