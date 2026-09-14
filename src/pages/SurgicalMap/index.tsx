@@ -191,14 +191,21 @@ const TIPO_FILTER_OPTIONS: [TipoCirurgia, string][] = [
     ["URGENCIA", "URGÊNCIA"], ["ELETIVA", "ELETIVA"], ["CONSIGNADO", "CONSIGNADO"], ["VENDA", "VENDA"],
 ];
 
+// Baias que só existem na consignação OPME: o material vai ao hospital, parte é
+// utilizada (apontada) e o resto volta. Num laticínio o produto é vendido,
+// faturado e entregue — não há apontamento nem devolução. Elas seguem no código
+// porque a SUPLEN usa o mesmo componente, mas só aparecem (baia do Kanban e
+// opção do filtro de status) quando há pedido nelas.
+const BAIAS_OPME: StatusWorkflow[] = ["APONTADO_REALIZADO", "AGUARDANDO_DEVOLUCAO"];
+
 const STATUS_CFG: Record<StatusWorkflow, { label: string; dotColor: string; textColor: string; textDark: string; icon?: any; empty: string }> = {
-    AGENDADO:             { label: "AGENDADO",              dotColor: "#ED8936", textColor: "#ED8936", textDark: "#C05621", icon: FaRegCalendarAlt,    empty: "Itens agendados aparecerão aqui." },
-    NOTA_FISCAL:          { label: "NOTA FISCAL",           dotColor: "#4299E1", textColor: "#4299E1", textDark: "#2B6CB0", icon: FaFileInvoiceDollar, empty: "Itens faturados aparecerão aqui." },
+    AGENDADO:             { label: "AGENDADO",              dotColor: "#ED8936", textColor: "#ED8936", textDark: "#C05621", icon: FaRegCalendarAlt,    empty: "Pedidos agendados aparecerão aqui." },
+    NOTA_FISCAL:          { label: "NOTA FISCAL",           dotColor: "#4299E1", textColor: "#4299E1", textDark: "#2B6CB0", icon: FaFileInvoiceDollar, empty: "Pedidos faturados aparecerão aqui." },
     EM_ROTA:              { label: "EM ROTA",               dotColor: "#ECC94B", textColor: "#ECC94B", textDark: "#B7791F", icon: FaRoute,             empty: "Pedidos enviados para entrega aparecerão aqui." },
-    ENTREGUE:             { label: "ENTREGUE",              dotColor: "#48BB78", textColor: "#48BB78", textDark: "#276749", icon: FaTruck,             empty: "Itens entregues aparecerão aqui." },
+    ENTREGUE:             { label: "ENTREGUE",              dotColor: "#48BB78", textColor: "#48BB78", textDark: "#276749", icon: FaTruck,             empty: "Pedidos entregues aparecerão aqui." },
     APONTADO_REALIZADO:   { label: "APONTADO / REALIZADO",  dotColor: "#B794F4", textColor: "#B794F4", textDark: "#553C9A", icon: FaClipboardCheck,    empty: "Itens apontados ou realizados aparecerão aqui." },
     AGUARDANDO_DEVOLUCAO: { label: "AGUARDANDO DEVOLUÇÃO",  dotColor: "#FC8181", textColor: "#FC8181", textDark: "#C53030", icon: FaUndoAlt,           empty: "Itens aguardando devolução aparecerão aqui." },
-    FINALIZADO:           { label: "AGUARDANDO FATURAMENTO", dotColor: "#68D391", textColor: "#68D391", textDark: "#22543D",                          empty: "Itens aguardando faturamento aparecerão aqui." },
+    FINALIZADO:           { label: "AGUARDANDO FATURAMENTO", dotColor: "#68D391", textColor: "#68D391", textDark: "#22543D",                          empty: "Pedidos aguardando faturamento aparecerão aqui." },
 };
 
 const ERP_COLOR_HEX: Record<string, string> = {
@@ -1456,9 +1463,16 @@ function KanbanBoard({
     // (mesmo par já usado na Lista) quando `ehClaro`.
     const { ehClaro } = useThemeMode();
 
+    // Baias OPME (apontado/devolução) só entram no quadro se houver pedido nelas
+    // — ver BAIAS_OPME. Na Valeza nunca há, então o Kanban fica com as 5 baias
+    // do fluxo real: agendado → em rota → nota fiscal → entregue → faturamento.
+    const statusVisiveis = STATUS_LIST.filter(
+        (st) => !BAIAS_OPME.includes(st) || items.some((i) => itemNaColuna(i, st))
+    );
+
     return (
         <RowFlex flex={1} overflowX="auto" overflowY="hidden" px={3} py={3} gap={3} align="stretch">
-            {STATUS_LIST.map((st) => {
+            {statusVisiveis.map((st) => {
                 const cfg = STATUS_CFG[st];
                 const acento = ehClaro ? cfg.textDark : cfg.textColor;
                 const colItems = items.filter((i) => itemNaColuna(i, st));
@@ -2325,6 +2339,23 @@ export default function SurgicalMap() {
         new Set(effItems.map(s => s.regiao).filter((r): r is string => !!r))
     ).sort();
 
+    // A Valeza não trabalha com urgência, eletiva nem consignado — todo pedido é
+    // VENDA. Oferecer tipos que nunca retornam nada faz o filtro mentir, então a
+    // lista sai dos próprios pedidos carregados (some sozinho aqui e continua
+    // completa na SUPLEN, que usa o mesmo componente). Sem pedido carregado
+    // ainda, cai na lista fixa para o filtro não aparecer vazio.
+    const tiposPresentes = new Set(effItems.map(s => s.tipo));
+    const tipoFilterOptions = tiposPresentes.size > 0
+        ? TIPO_FILTER_OPTIONS.filter(([v]) => tiposPresentes.has(v))
+        : TIPO_FILTER_OPTIONS;
+
+    // Mesma regra do Kanban, para o filtro de status não oferecer baias OPME
+    // (apontado/devolução) que nunca trariam resultado na Valeza.
+    const statusComPedido = new Set(effItems.map(s => s.statusWorkflow));
+    const statusFilterOptions = STATUS_LIST.filter(
+        s => !BAIAS_OPME.includes(s) || statusComPedido.has(s)
+    );
+
     // Todos os demais filtros, sem o de Filial. Fica separado para servir de
     // base à contagem por filial abaixo: o número ao lado de cada opção precisa
     // dizer quantos pedidos aquela filial traria com os OUTROS filtros já
@@ -2569,7 +2600,7 @@ export default function SurgicalMap() {
                                         value={filterStatuses}
                                         onChange={(vals) => { setFilterStatuses(vals as string[]); setPage(1); }}
                                     >
-                                        {STATUS_LIST.map(s => (
+                                        {statusFilterOptions.map(s => (
                                             <MenuItemOption key={s} value={s} color="gray.100" bg="gray.800" _hover={{ bg: "gray.700" }} _focus={{ bg: "gray.700" }}>
                                                 {STATUS_CFG[s].label}
                                             </MenuItemOption>
@@ -2611,7 +2642,7 @@ export default function SurgicalMap() {
                                         value={filterTipos}
                                         onChange={(vals) => { setFilterTipos(vals as string[]); setPage(1); }}
                                     >
-                                        {TIPO_FILTER_OPTIONS.map(([v, label]) => (
+                                        {tipoFilterOptions.map(([v, label]) => (
                                             <MenuItemOption key={v} value={v} color="gray.100" bg="gray.800" _hover={{ bg: "gray.700" }} _focus={{ bg: "gray.700" }}>
                                                 {label}
                                             </MenuItemOption>
