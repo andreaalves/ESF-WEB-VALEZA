@@ -769,7 +769,7 @@ function registrarFinalizadoObservado(items: Scheduling[]): Scheduling[] {
 // (2026-08-20): pedidos ainda em andamento (sem NF, ou em qualquer baia do
 // fluxo cirúrgico antes de FINALIZADO) NUNCA são cortados — só some quem já
 // não tem mais nada a acompanhar.
-const JANELA_CORTE_FLUXO_REDUZIDO_HORAS = 30 * 24; // consignado/venda: não têm baia FINALIZADO (ver tipoTemFluxoCirurgico) — somem 30 dias após a NF. Era 48h, mas na prática o pedido saía da tela quase junto com a nota (venda é faturada no mesmo dia) e a operação perdia o acompanhamento; um mês cobre o ciclo de conferência sem deixar o mapa crescer pra sempre
+const JANELA_CORTE_FLUXO_REDUZIDO_HORAS = 180 * 24; // consignado/venda: não têm baia FINALIZADO (ver tipoTemFluxoCirurgico) — somem N dias após a NF. Foi 48h, depois 30 dias; agora 180, alinhado à janela de 6 meses do fetch. Com 30 dias a Valeza ficava com o mapa vazio: o ERP parou de aceitar pedidos em 06/2026 e as duas únicas NFs existentes já tinham 80+ dias, então o corte apagava o que o fetch tinha acabado de trazer
 const JANELA_CORTE_FINALIZADO_HORAS = 72; // urgência/eletiva: somem N horas após ENTRAR em FINALIZADO (não desde a NF — rota/entrega/apontamento/devolução podem levar dias)
 // Rede de segurança compartilhada: pedido cujo momento de referência (NF ou
 // entrada em FINALIZADO) a gente nunca chegou a OBSERVAR — nem veio do
@@ -781,7 +781,7 @@ const JANELA_CORTE_FINALIZADO_HORAS = 72; // urgência/eletiva: somem N horas ap
 // anterior confiável (criação do pedido ou NF) como piso, com uma janela BEM
 // mais larga: nunca corta algo recente (30 dias não passa nem perto de "há
 // pouco"), só evita que esse backlog fique acumulado pra sempre.
-const JANELA_CORTE_SEM_CARIMBO_HORAS = 30 * 24;
+const JANELA_CORTE_SEM_CARIMBO_HORAS = 180 * 24;
 
 function momentoFaturamento(item: Scheduling): DateTime | null {
     return fimFaturamentoReal(item)
