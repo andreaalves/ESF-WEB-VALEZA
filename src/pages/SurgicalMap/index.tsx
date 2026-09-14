@@ -2161,9 +2161,13 @@ export default function SurgicalMap() {
             // faturar: emitido no fim de um mês e faturado no começo do seguinte
             // (ex.: pedido 015160 / NF 000063789 — emissão 31/08, NF 02/09) ficava
             // invisível já no dia 1º, com a esteira toda ainda por acompanhar.
-            const inicioMes = DateTime.now().startOf("month").toISODate();
+            // Janela de 6 meses em vez do mês corrente. O recorte mensal assumia
+            // integração em dia — com o ERP fora desde 06/2026, ele escondia
+            // TODOS os pedidos da Valeza (39 no banco, 0 na tela). Seis meses
+            // cobrem a esteira parada sem inchar a listagem.
+            const inicioJanela = DateTime.now().minus({ months: 6 }).startOf("month").toISODate();
             const fimMes = DateTime.now().endOf("month").toISODate();
-            const noMesAtual = (dia: string) => !!dia && dia >= (inicioMes ?? "") && dia <= (fimMes ?? "");
+            const noMesAtual = (dia: string) => !!dia && dia >= (inicioJanela ?? "") && dia <= (fimMes ?? "");
             const doPedidos: Scheduling[] = (pedidos as any[])
                 .filter((p: any) => {
                     if (pedidoExcluido(p.situacao, p.excluido)) return false;
@@ -2171,8 +2175,8 @@ export default function SurgicalMap() {
                     if (pedidoTravadoSyncSemNF(p)) return false;
                     // Pedido do app: sem restrição adicional (regra original).
                     if (p.payload_enviado) return true;
-                    // Pedido nativo do ERP: só eletiva/consignado, só do mês atual
-                    // (pela emissão OU pela NF — ver comentário do noMesAtual).
+                    // Pedido nativo do ERP: só os tipos aceitos e dentro da
+                    // janela (pela emissão OU pela NF — ver noMesAtual acima).
                     // data_faturamento é `@db.Date` (meia-noite UTC): lida por
                     // dataCalendario, senão no fuso local cai no dia anterior.
                     const dataEmissao = (p.data_emissao || "").substring(0, 10);
