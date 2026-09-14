@@ -4,11 +4,11 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import {
     FaSyncAlt, FaClipboardList, FaWifi,
     FaExclamationCircle, FaChevronLeft, FaChevronRight,
-    FaTimes, FaUser, FaUserMd, FaSave, FaPen, FaTrashAlt, FaPlus,
+    FaTimes, FaSave, FaPen, FaTrashAlt, FaPlus,
     FaTv, FaCompress,
     FaRegClock, FaRegStickyNote, FaRegAddressCard, FaRegCalendarAlt,
     FaBoxOpen, FaFileInvoiceDollar, FaTruck, FaRoute, FaClipboardCheck, FaUndoAlt,
-    FaHashtag, FaHospital, FaHourglassHalf,
+    FaHashtag, FaStore, FaHourglassHalf,
 } from "react-icons/fa";
 import { useLocation } from "react-router-dom";
 import { Header } from "../../components/Header";
@@ -1254,10 +1254,10 @@ function KanbanCard({ item, onClick, materiais }: { item: Scheduling; onClick: (
                     <RowBox h="6px" w="22px" borderRadius="full" bg="#B794F4" mb={1.5} title="Status manual" />
                 )}
 
-                {/* Título: hospital — texto branco; só a lateral (borda) leva a cor do tipo */}
+                {/* Título: cliente — texto branco; só a lateral (borda) leva a cor do tipo */}
                 <RowFlex align="flex-start" justify="space-between" gap={2} mb={2}>
                     <RowFlex align="flex-start" gap={2} flex="1 1 auto" minW={0} overflow="hidden">
-                        <Icon as={FaHospital} w={3.5} h={3.5} color="#90CDF4" flexShrink={0} mt="2px" />
+                        <Icon as={FaStore} w={3.5} h={3.5} color="#90CDF4" flexShrink={0} mt="2px" />
                         <RowBox flex={1} minW={0} overflow="hidden">
                             <RowText fontWeight="700" fontSize="13px" color={CARD_INK} noOfLines={2} lineHeight="1.3">
                                 {item.cliente?.razaoSocial || "—"}
@@ -1288,36 +1288,31 @@ function KanbanCard({ item, onClick, materiais }: { item: Scheduling; onClick: (
                     </RowFlex>
                 </RowFlex>
 
-                {/* Paciente / médico / convênio — só aparecem quando há dado
-                    (pedidos de consignado/venda). Sem dado, a linha some. */}
-                {item.paciente && (
+                {/* Valor e condição de pagamento, no lugar do antigo bloco de
+                    paciente/médico/convênio (campos OPME que não existem no ERP
+                    de um laticínio). Sem dado, a linha some. */}
+                {item.valorPedido != null && (
                     <RowFlex align="center" gap={3} mb={1}>
-                        <Icon as={FaUser} w={3} h={3} color="#4FD1C5" flexShrink={0} />
-                        <RowText fontSize="12px" fontWeight="600" color={CARD_INK} noOfLines={1}>{item.paciente}</RowText>
+                        <Icon as={FaFileInvoiceDollar} w={3} h={3} color="#4FD1C5" flexShrink={0} />
+                        <RowText fontSize="12px" fontWeight="700" color={CARD_INK} noOfLines={1}>{formatBRL(item.valorPedido)}</RowText>
                     </RowFlex>
                 )}
-                {item.medico && (
-                    <RowFlex align="center" gap={3} mb={1}>
-                        <Icon as={FaUserMd} w={3} h={3} color="#B794F4" flexShrink={0} />
-                        <RowText fontSize="12px" fontWeight="500" color={CARD_INK} noOfLines={1}>{item.medico}</RowText>
-                    </RowFlex>
-                )}
-                {item.convenio && (
+                {item.condicaoPagamento && (
                     <RowFlex align="center" gap={3} mb={1}>
                         <Icon as={FaRegAddressCard} w={3} h={3} color="#F687B3" flexShrink={0} />
-                        <RowText fontSize="12px" fontWeight="500" color={CARD_INK} noOfLines={1}>{item.convenio}</RowText>
+                        <RowText fontSize="12px" fontWeight="500" color={CARD_INK} noOfLines={1} title={item.condicaoPagamento}>{item.condicaoPagamento}</RowText>
                     </RowFlex>
                 )}
 
-                {/* Materiais solicitados no pedido (item_pedido). Carregados sob
-                    demanda pelo GET /pedidos/:id — enquanto não chegam, o bloco
-                    não aparece (undefined); lista vazia = pedido sem itens. */}
+                {/* Produtos do pedido (item_pedido). Carregados sob demanda pelo
+                    GET /pedidos/:id — enquanto não chegam, o bloco não aparece
+                    (undefined); lista vazia = pedido sem itens. */}
                 {materiais && materiais.length > 0 && (
                     <RowBox mt={2} mb={1}>
                         <RowFlex align="center" gap={2} mb={1}>
                             <Icon as={FaBoxOpen} w={3} h={3} color="#F6AD55" flexShrink={0} />
                             <RowText fontSize="10px" fontWeight="bold" color="whiteAlpha.700" letterSpacing="wide">
-                                MATERIAIS ({materiais.length})
+                                PRODUTOS ({materiais.length})
                             </RowText>
                         </RowFlex>
                         <RowBox pl="12px">
@@ -1346,7 +1341,7 @@ function KanbanCard({ item, onClick, materiais }: { item: Scheduling; onClick: (
                             ))}
                             {materiais.length > 3 && (
                                 <RowText fontSize="10px" color="whiteAlpha.500">
-                                    +{materiais.length - 3} {materiais.length - 3 === 1 ? "material" : "materiais"}
+                                    +{materiais.length - 3} {materiais.length - 3 === 1 ? "produto" : "produtos"}
                                 </RowText>
                             )}
                         </RowBox>
@@ -1708,12 +1703,12 @@ function DetailModal({
                             <RowText flex={1} fontSize="sm" color="gray.100">{value}</RowText>
                         </RowFlex>
                     ))}
-                    {/* Materiais solicitados no pedido (item_pedido do GET /pedidos/:id) */}
+                    {/* Produtos do pedido (item_pedido do GET /pedidos/:id) */}
                     <RowBox mt={4}>
                         <RowFlex align="center" justify="space-between" mb={1.5}>
                             <RowFlex align="center" gap={2}>
                                 <Icon as={FaBoxOpen} w={3} h={3} color="#F6AD55" />
-                                <RowText fontSize="xs" fontWeight="bold" color="gray.400" letterSpacing="wide">MATERIAIS DO PEDIDO</RowText>
+                                <RowText fontSize="xs" fontWeight="bold" color="gray.400" letterSpacing="wide">PRODUTOS DO PEDIDO</RowText>
                             </RowFlex>
                             {materiais && materiais.length > 0 && (
                                 <RowText fontSize="10px" color="gray.500">{materiais.length}</RowText>
@@ -1722,10 +1717,10 @@ function DetailModal({
                         {!materiais ? (
                             <RowFlex align="center" gap={2} py={2}>
                                 <Spinner size="xs" color="orange.400" />
-                                <RowText fontSize="xs" color="gray.500">Carregando materiais...</RowText>
+                                <RowText fontSize="xs" color="gray.500">Carregando produtos...</RowText>
                             </RowFlex>
                         ) : materiais.length === 0 ? (
-                            <RowText fontSize="xs" color="gray.500" py={2}>Nenhum material encontrado neste pedido.</RowText>
+                            <RowText fontSize="xs" color="gray.500" py={2}>Nenhum produto encontrado neste pedido.</RowText>
                         ) : (
                             materiais.map((m) => (
                                 <RowFlex key={m.id} align="flex-start" gap={3} py={1.5} borderBottom="1px solid" borderColor="whiteAlpha.100">
