@@ -30,7 +30,10 @@ type StatusWorkflow =
     | "AGUARDANDO_DEVOLUCAO"
     | "FINALIZADO";
 
-type TipoCirurgia = "URGENCIA" | "ELETIVA" | "CONSIGNADO" | "VENDA";
+// BONIFICACAO é tipo de pedido do TOTVS da Valeza (laticínio): mercadoria dada
+// ao cliente sem cobrança. Não tem nada de cirúrgico — o nome do type é herança
+// da SUPLEN (OPME), que usa o mesmo componente.
+type TipoCirurgia = "URGENCIA" | "ELETIVA" | "CONSIGNADO" | "VENDA" | "BONIFICACAO";
 
 interface Scheduling {
     id: string;
@@ -173,7 +176,7 @@ const STATUS_LIST: StatusWorkflow[] = [
     "APONTADO_REALIZADO", "AGUARDANDO_DEVOLUCAO", "FINALIZADO",
 ];
 
-const TIPOS: TipoCirurgia[] = ["URGENCIA", "ELETIVA", "CONSIGNADO", "VENDA"];
+const TIPOS: TipoCirurgia[] = ["URGENCIA", "ELETIVA", "CONSIGNADO", "VENDA", "BONIFICACAO"];
 
 // Situações que o backend grava quando o pedido deixa de valer no TOTVS.
 // São DUAS strings, não uma: excluir o pedido no Protheus grava EXCLUIDO_ERP e
@@ -189,6 +192,7 @@ const ehPedidoBaixadoNoErp = (situacao?: string): boolean =>
 // Opções do filtro de tipo (multi-select) — rótulos com acento, como no select antigo.
 const TIPO_FILTER_OPTIONS: [TipoCirurgia, string][] = [
     ["URGENCIA", "URGÊNCIA"], ["ELETIVA", "ELETIVA"], ["CONSIGNADO", "CONSIGNADO"], ["VENDA", "VENDA"],
+    ["BONIFICACAO", "BONIFICAÇÃO"],
 ];
 
 // Baias que só existem na consignação OPME: o material vai ao hospital, parte é
@@ -390,18 +394,24 @@ function normalizaTipo(v?: string): TipoCirurgia {
         || upper === "VALE_PERMANENTE" || upper === "VALE PERMANENTE") return "CONSIGNADO";
     if (upper === "ELETIVA" || upper === "ELETIVO") return "ELETIVA";
     if (upper === "VENDA" || upper === "VENDAS") return "VENDA";
+    // Bonificação: mercadoria enviada sem cobrança. Antes caía no "ELETIVA" do
+    // fim da função e aparecia com o rótulo errado na tela.
+    if (upper === "BONIFICACAO" || upper === "BONIFICAÇÃO" || upper === "BONIFICADO") return "BONIFICACAO";
     return "ELETIVA";
 }
 
-// Pedido feito direto no TOTVS (sem payload do app): por ora s\u00f3 entram no mapa
-// os tipos ELETIVA, URGENCIA e CONSIGNADO/VALE_PERMANENTE (decis\u00e3o de neg\u00f3cio) \u2014
-// VENDA feito direto no ERP fica de fora por enquanto.
+// Pedido feito direto no TOTVS (sem payload do app). VENDA e BONIFICACAO entram
+// aqui porque s\u00e3o os \u00daNICOS tipos da Valeza: deix\u00e1-los de fora \u2014 como era antes,
+// quando a regra servia s\u00f3 \u00e0 SUPLEN (OPME) \u2014 esvaziava o mapa inteiro, j\u00e1 que
+// todo pedido de um latic\u00ednio nasce no ERP, n\u00e3o no app.
 function tipoErpNativoPermitido(rawTipo?: string): boolean {
     const upper = (rawTipo ?? "").toString().toUpperCase().trim();
     return upper === "ELETIVA" || upper === "ELETIVO"
         || upper === "URGENCIA"
         || upper === "VALE_PERMANENTE" || upper === "VALE PERMANENTE"
-        || upper === "CONSIGNADO" || upper === "CONSIGNACAO" || upper === "CONSIGNA\u00c7\u00c3O";
+        || upper === "CONSIGNADO" || upper === "CONSIGNACAO" || upper === "CONSIGNA\u00c7\u00c3O"
+        || upper === "VENDA" || upper === "VENDAS"
+        || upper === "BONIFICACAO" || upper === "BONIFICA\u00c7\u00c3O" || upper === "BONIFICADO";
 }
 
 function normalizaPayload(bruto: any): any {
@@ -1128,21 +1138,24 @@ function MapRow({ item }: { item: Scheduling }) {
 // URGÊNCIA=vermelho, CONSIGNADO=laranja, VENDA=roxo, ELETIVA=azul (alinhado ao
 // fundo azul das linhas de eletiva na Lista).
 function tipoColorOf(tipo: TipoCirurgia): string {
-    return tipo === "URGENCIA"   ? "#C53030" :
-           tipo === "CONSIGNADO" ? "#C05621" :
-           tipo === "VENDA"      ? "#6B46C1" : "#3182CE";
+    return tipo === "URGENCIA"    ? "#C53030" :
+           tipo === "CONSIGNADO"  ? "#C05621" :
+           tipo === "VENDA"       ? "#6B46C1" :
+           tipo === "BONIFICACAO" ? "#2F855A" : "#3182CE";
 }
 function tipoLabelOf(tipo: TipoCirurgia): string {
-    return tipo === "URGENCIA"   ? "URGENCIA" :
-           tipo === "CONSIGNADO" ? "CONSIGNADO" :
-           tipo === "VENDA"      ? "VENDA" : "ELETIVO";
+    return tipo === "URGENCIA"    ? "URGENCIA" :
+           tipo === "CONSIGNADO"  ? "CONSIGNADO" :
+           tipo === "VENDA"       ? "VENDA" :
+           tipo === "BONIFICACAO" ? "BONIFICACAO" : "ELETIVO";
 }
 // Versão clara/viva da cor do tipo, pra "acender" sobre os fundos escuros
 // (cards do kanban e linhas da lista) — igual à foto de referência.
 function tipoAccentOf(tipo: TipoCirurgia): string {
-    return tipo === "URGENCIA"   ? "#FC8181" :
-           tipo === "CONSIGNADO" ? "#F6AD55" :
-           tipo === "VENDA"      ? "#B794F4" : "#63B3ED";
+    return tipo === "URGENCIA"    ? "#FC8181" :
+           tipo === "CONSIGNADO"  ? "#F6AD55" :
+           tipo === "VENDA"       ? "#B794F4" :
+           tipo === "BONIFICACAO" ? "#68D391" : "#63B3ED";
 }
 
 // Cor de fundo dos cards (navy escuro pedido pelo usuário). Publicada como CSS
@@ -2322,7 +2335,7 @@ export default function SurgicalMap() {
         return () => { clearInterval(timer); };
     }, [fetchData]);
 
-    const tipoOrder: Record<TipoCirurgia, number> = { URGENCIA: 0, ELETIVA: 1, CONSIGNADO: 2, VENDA: 3 };
+    const tipoOrder: Record<TipoCirurgia, number> = { URGENCIA: 0, ELETIVA: 1, CONSIGNADO: 2, VENDA: 3, BONIFICACAO: 4 };
 
     // statusTotvs = o que o ERP determinou (base); statusWorkflow = efetivo, já
     // com o status manual da logística aplicado por cima quando for mais avançado.
