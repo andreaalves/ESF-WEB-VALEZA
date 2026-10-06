@@ -116,14 +116,12 @@ export const CreateInternalUser: React.FC = () => {
           .string()
           .notRequired()
           .default('')
+          // Mesmo mínimo da API (6 caracteres), sem exigir letra: senha só
+          // com números é aceita.
           .test(
-            'senha-forte',
-            'A senha deve ter no mínimo 8 caracteres, com letra e número.',
-            (value) =>
-              !value ||
-              (value.length >= 8 &&
-                /[A-Za-z]/.test(value) &&
-                /[0-9]/.test(value))
+            'senha-minima',
+            'A senha deve ter no mínimo 6 caracteres.',
+            (value) => !value || value.length >= 6
           ),
         role: yup.string().required('Campo obrigatório.'),
       }),
