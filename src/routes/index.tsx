@@ -1,4 +1,8 @@
-import { BrowserRouter as Router, Switch } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Route as RotaSemGuarda,
+  Switch,
+} from 'react-router-dom';
 import { CreateCategory } from '../pages/CreateCategory';
 import { CreateCostumer } from '../pages/CreateCostumer';
 import { CreateFreight } from '../pages/CreateFreight';
@@ -24,6 +28,7 @@ import ListInternalUser from '../pages/ListInternalUser';
 import ListTableProducts from '../pages/ListTableProducts';
 import ListScheduling from '../pages/ListScheduling';
 import { Login } from '../pages/Login';
+import { ResetarSenha } from '../pages/ResetarSenha';
 import PagesTest from '../pages/PageTest';
 import Route from './Route';
 import ListItensOrder from '../pages/ListItensOrder';
@@ -54,6 +59,11 @@ export const Routes = () => {
     <Router>
       <Switch>
         <Route exact path="/" component={Login} />
+        {/* Destino do link do e-mail de recuperação de senha. Usa a rota crua
+            do react-router de propósito: o `Route` daqui manda quem já está
+            logado para /home, e o link tem que abrir com ou sem sessão. O
+            caminho é o que o ESF-API escreve no e-mail — não renomear. */}
+        <RotaSemGuarda exact path="/resetar-senha" component={ResetarSenha} />
         <Route exact path="/home" component={ListOrder} isPrivate />
         <Route
           exact

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { SubmitHandler, useForm, FieldError } from 'react-hook-form';
 import {
@@ -14,6 +15,7 @@ import {
 } from '@chakra-ui/react';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../../components/ThemeToggle';
+import { EsqueciSenhaModal } from '../../components/EsqueciSenhaModal';
 import logo from '../../assets/logo-arvore.png';
 
 type IData = {
@@ -23,9 +25,11 @@ type IData = {
 };
 
 export const Login = () => {
-  const { register, handleSubmit, formState } = useForm();
+  const { register, handleSubmit, getValues, formState } = useForm();
   const { errors } = formState;
   const toast = useToast();
+  // null = fechado; string = aberto, já com o e-mail que estava digitado aqui.
+  const [emailParaRecuperar, setEmailParaRecuperar] = useState<string | null>(null);
 
   const { signIn } = useAuth();
 
@@ -121,8 +125,27 @@ export const Login = () => {
               Entrar
             </Button>
           </form>
+          <Button
+            mt="4"
+            variant="link"
+            color="gray.400"
+            fontWeight="normal"
+            fontSize="sm"
+            onClick={() => setEmailParaRecuperar(getValues('email') || '')}
+          >
+            Esqueci minha senha
+          </Button>
         </Flex>
       </Box>
+
+      {/* Fora do <form> de propósito: o submit do modal subiria pela árvore do
+          React e dispararia o login junto. */}
+      {emailParaRecuperar !== null && (
+        <EsqueciSenhaModal
+          emailInicial={emailParaRecuperar}
+          onClose={() => setEmailParaRecuperar(null)}
+        />
+      )}
     </Flex>
   );
 };

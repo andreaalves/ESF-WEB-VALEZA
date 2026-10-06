@@ -3,12 +3,14 @@ import { Box, Button, Flex, Text, Image } from '@chakra-ui/react';
 import { useHistory } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../ThemeToggle';
+import { AlterarSenhaModal } from '../AlterarSenhaModal';
 import {
   baixarLogoEmpresa,
   lerVersaoLogo,
   ouvirLogoAtualizada,
   recortarTransparencia,
 } from '../../helpers/logoEmpresa';
+import { RiLockPasswordLine } from 'react-icons/ri';
 import logo from '../../assets/logo-arvore.png';
 
 export const Header = () => {
@@ -27,6 +29,7 @@ export const Header = () => {
   // logo cadastrada, ou download que falhou): o bloco todo some e fica só a
   // marca da essencial.
   const [srcLogoEmpresa, setSrcLogoEmpresa] = useState('');
+  const [alterandoSenha, setAlterandoSenha] = useState(false);
 
   useEffect(() => {
     let ativo = true;
@@ -142,6 +145,17 @@ export const Header = () => {
             </Text>
             <Button
               size="sm"
+              mr="2"
+              variant="ghost"
+              leftIcon={<RiLockPasswordLine />}
+              _hover={{ bg: 'gray.700' }}
+              _active={{ bg: 'gray.600' }}
+              onClick={() => setAlterandoSenha(true)}
+            >
+              Alterar senha
+            </Button>
+            <Button
+              size="sm"
               bg="blue.500"
               color="white"
               _hover={{
@@ -154,6 +168,10 @@ export const Header = () => {
           </Flex>
         </Flex>
       </Flex>
+
+      {alterandoSenha && (
+        <AlterarSenhaModal onClose={() => setAlterandoSenha(false)} />
+      )}
     </>
   );
 };
