@@ -283,9 +283,15 @@ export default function ListItensOrder() {
                         </VStack>
                         <VStack alignItems="start">
                           <Text>MARGEM:</Text>
+                          {/* Sem currencyMask: ela remove o sinal e margem
+                              negativa aparecia como positiva. */}
                           <Text fontWeight="bold">
-                            {currencyMask(
-                              (dados.margem_pedido * 100).toFixed(2).toString()
+                            {(Number(dados.margem_pedido) * 100).toLocaleString(
+                              'pt-BR',
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }
                             )}{' '}
                             %
                           </Text>
