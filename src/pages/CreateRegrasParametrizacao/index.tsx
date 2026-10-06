@@ -275,7 +275,11 @@ export const CreateRegrasParametrizacao = () => {
                     ]}
                     chave="value"
                   />
+                </SimpleGrid>
 
+                <Divider my="6" borderColor="gray.700" />
+
+                <SimpleGrid minChildWidth="240px" spacing="6" w="100%">
                   <SelectCustom
                     label="Tipo de Parametrização"
                     placeholder="Selecione a opção"
