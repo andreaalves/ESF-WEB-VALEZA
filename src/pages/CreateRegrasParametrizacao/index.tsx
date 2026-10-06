@@ -134,8 +134,8 @@ export const CreateRegrasParametrizacao = () => {
       setValue('condicaoPgtoCliente', String(!!dados?.condicao_pgto_cliente));
       // Bloqueio por margem nasce ligado (é o comportamento de antes do campo
       // existir); bloqueio por preço nasce desligado.
-      setValue('bloqueioMargem', String(dados?.bloqueio_margem ?? true));
-      setValue('bloqueioPreco', String(!!dados?.bloqueio_preco));
+      setValue('bloqueioMargem', String(dados?.bloqueio_por_margem ?? true));
+      setValue('bloqueioPreco', String(!!dados?.bloqueio_por_preco));
       setValue('utilizaOpme', String(!!dados?.utiliza_opme));
       setUtilizaOpme(!!dados?.utiliza_opme);
     };
@@ -195,8 +195,10 @@ export const CreateRegrasParametrizacao = () => {
       multiplas_tabela_preco: String(data?.multiplasTabelaPreco) === 'true',
       atendimento_por_regiao: String(data?.atendimentoPorRegiao) === 'true',
       condicao_pgto_cliente: String(data?.condicaoPgtoCliente) === 'true',
-      bloqueio_margem: String(data?.bloqueioMargem) === 'true',
-      bloqueio_preco: String(data?.bloqueioPreco) === 'true',
+      // Os dois vão como boolean de verdade: a API trata a string "false"
+      // de bloqueio_por_preco como verdadeiro.
+      bloqueio_por_margem: String(data?.bloqueioMargem) === 'true',
+      bloqueio_por_preco: String(data?.bloqueioPreco) === 'true',
       utiliza_opme: String(data?.utilizaOpme) === 'true',
     };
 
