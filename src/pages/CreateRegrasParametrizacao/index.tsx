@@ -55,6 +55,8 @@ type IFormInputs = {
   tipoPedido: TipoPedido[];
   atendimentoPorRegiao: boolean;
   condicaoPgtoCliente: boolean;
+  bloqueioMargem: boolean;
+  bloqueioPreco: boolean;
   utilizaOpme: boolean;
   empresa: {
     id: string;
@@ -130,6 +132,10 @@ export const CreateRegrasParametrizacao = () => {
       setValue('multiplasTabelaPreco', String(!!dados?.multiplas_tabela_preco));
       setValue('atendimentoPorRegiao', String(!!dados?.atendimento_por_regiao));
       setValue('condicaoPgtoCliente', String(!!dados?.condicao_pgto_cliente));
+      // Bloqueio por margem nasce ligado (é o comportamento de antes do campo
+      // existir); bloqueio por preço nasce desligado.
+      setValue('bloqueioMargem', String(dados?.bloqueio_margem ?? true));
+      setValue('bloqueioPreco', String(!!dados?.bloqueio_preco));
       setValue('utilizaOpme', String(!!dados?.utiliza_opme));
       setUtilizaOpme(!!dados?.utiliza_opme);
     };
@@ -189,6 +195,8 @@ export const CreateRegrasParametrizacao = () => {
       multiplas_tabela_preco: String(data?.multiplasTabelaPreco) === 'true',
       atendimento_por_regiao: String(data?.atendimentoPorRegiao) === 'true',
       condicao_pgto_cliente: String(data?.condicaoPgtoCliente) === 'true',
+      bloqueio_margem: String(data?.bloqueioMargem) === 'true',
+      bloqueio_preco: String(data?.bloqueioPreco) === 'true',
       utiliza_opme: String(data?.utilizaOpme) === 'true',
     };
 
@@ -242,6 +250,30 @@ export const CreateRegrasParametrizacao = () => {
                     control={control}
                     masks={percentMask}
                     minLength={3}
+                  />
+
+                  <SelectCustom
+                    label="Bloqueio por margem"
+                    name="bloqueioMargem"
+                    register={register}
+                    errorMessage={errors.bloqueioMargem?.message}
+                    options={[
+                      { id: 'true', value: 'Sim' },
+                      { id: 'false', value: 'Não' },
+                    ]}
+                    chave="value"
+                  />
+
+                  <SelectCustom
+                    label="Bloqueio por preço abaixo da tabela"
+                    name="bloqueioPreco"
+                    register={register}
+                    errorMessage={errors.bloqueioPreco?.message}
+                    options={[
+                      { id: 'true', value: 'Sim' },
+                      { id: 'false', value: 'Não' },
+                    ]}
+                    chave="value"
                   />
 
                   <SelectCustom
