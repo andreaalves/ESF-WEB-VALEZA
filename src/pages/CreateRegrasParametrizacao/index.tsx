@@ -277,10 +277,10 @@ export const CreateRegrasParametrizacao = () => {
                     register={register}
                     errorMessage={errors.bloqueioPreco?.message}
                     options={[
-                      { id: 'true', value: 'Permitir, com aprovação do gerente' },
+                      { id: 'true', value: 'Exige aprovação do gerente' },
                       {
                         id: 'false',
-                        value: 'Não permitir além do desconto máximo',
+                        value: 'Não permite além do desconto máximo',
                       },
                     ]}
                     chave="value"
