@@ -5,13 +5,14 @@ import {
   Button,
   Icon,
   Heading,
+  Input,
   Spinner,
   useDisclosure,
   Text,
   useToast,
 } from '@chakra-ui/react';
 import { RiAddLine } from 'react-icons/ri';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Header } from '../../components/Header';
 import ReactTableComponent from '../../components/TableComponent';
 import api from '../../service/api';
@@ -22,10 +23,17 @@ import { Wapper } from '../../components/Wapper';
 import { useAuth } from '../../context/AuthContext';
 import { ExcludeDialog } from '../../components/ExlcudeDialog';
 
+const semAcento = (valor: any) =>
+  String(valor ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+
 export default function ListTableProducts() {
   const [tablePrice, setTablePrice] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [idToDelete, setIdToDelete] = useState('');
+  const [busca, setBusca] = useState('');
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { user } = useAuth();
   const toast = useToast();
@@ -79,6 +87,16 @@ export default function ListTableProducts() {
     '/cadastro/parametrizacao-tabela-preco'
   );
 
+  const termo = semAcento(busca.trim());
+
+  const tabelasFiltradas = useMemo(() => {
+    if (!termo) return tablePrice;
+
+    return tablePrice.filter((tabela: any) =>
+      semAcento([tabela.codigo, tabela.nome].join(' ')).includes(termo)
+    );
+  }, [tablePrice, termo]);
+
   useEffect(() => {
     api
       .get(
@@ -102,10 +120,18 @@ export default function ListTableProducts() {
       <Flex align="start" mx="auto" mt="8" px="6">
         <Wapper>
           <Box flex="1" p="8" bg="gray.800" borderRadius={8} mb="16">
-            <Flex justify="space-between" align="center">
+            <Flex justify="space-between" align="center" wrap="wrap" gap={3}>
               <Heading size="md" fontWeight="normal">
                 LISTA DE TABELA DE PREÇOS
               </Heading>
+              <Input
+                size="sm"
+                w={{ base: '100%', md: '320px' }}
+                borderRadius="md"
+                placeholder="Buscar por código ou nome da tabela"
+                value={busca}
+                onChange={(evento) => setBusca(evento.target.value)}
+              />
               {/* <Button
                 as="a"
                 size="sm"
@@ -132,10 +158,19 @@ export default function ListTableProducts() {
                         Sem tabelas de preço para exibir
                       </Text>
                     </Flex>
+                  ) : tabelasFiltradas.length === 0 ? (
+                    <Flex>
+                      <Text color="orange.200">
+                        Nenhuma tabela de preço encontrada para "{busca.trim()}"
+                      </Text>
+                    </Flex>
                   ) : (
+                    // key = termo: remonta a tabela a cada busca para voltar
+                    // à página 1 (a tabela usa autoResetPage: false).
                     <ReactTableComponent
+                      key={termo}
                       columns={column}
-                      data={tablePrice}
+                      data={tabelasFiltradas}
                       isPagenable
                     />
                   )}
