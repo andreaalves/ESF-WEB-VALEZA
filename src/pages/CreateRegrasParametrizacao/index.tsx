@@ -254,26 +254,34 @@ export const CreateRegrasParametrizacao = () => {
                     minLength={3}
                   />
 
+                  {/* Os dois campos abaixo são o bloqueio_por_margem e o
+                      bloqueio_por_preco da API. O texto diz o que acontece
+                      com o pedido: "Bloqueio: Sim/Não" era lido ao contrário,
+                      porque "true" é o pedido ficar preso para o gerente, não
+                      o vendedor ser impedido de digitar. */}
                   <SelectCustom
-                    label="Bloqueio por margem"
+                    label="Margem abaixo do percentual de aprovação"
                     name="bloqueioMargem"
                     register={register}
                     errorMessage={errors.bloqueioMargem?.message}
                     options={[
-                      { id: 'true', value: 'Sim' },
-                      { id: 'false', value: 'Não' },
+                      { id: 'true', value: 'Exige aprovação do gerente' },
+                      { id: 'false', value: 'Libera direto' },
                     ]}
                     chave="value"
                   />
 
                   <SelectCustom
-                    label="Bloqueio por preço abaixo da tabela"
+                    label="Venda abaixo do preço de tabela"
                     name="bloqueioPreco"
                     register={register}
                     errorMessage={errors.bloqueioPreco?.message}
                     options={[
-                      { id: 'true', value: 'Sim' },
-                      { id: 'false', value: 'Não' },
+                      { id: 'true', value: 'Permitir, com aprovação do gerente' },
+                      {
+                        id: 'false',
+                        value: 'Não permitir além do desconto máximo',
+                      },
                     ]}
                     chave="value"
                   />
