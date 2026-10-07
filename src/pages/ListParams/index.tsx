@@ -5,12 +5,13 @@ import {
   Button,
   Icon,
   Heading,
+  HStack,
   Spinner,
   useToast,
   Text,
   useDisclosure,
 } from '@chakra-ui/react';
-import { RiAddLine } from 'react-icons/ri';
+import { RiAddLine, RiMailSettingsLine } from 'react-icons/ri';
 import { useEffect, useState } from 'react';
 import { Header } from '../../components/Header';
 import ReactTableComponent from '../../components/TableComponent';
@@ -21,6 +22,7 @@ import { SiderbarResponsive } from '../../components/SiderbarResponsive';
 import { Wapper } from '../../components/Wapper';
 import { useAuth } from '../../context/AuthContext';
 import { ExcludeDialog } from '../../components/ExlcudeDialog';
+import { ConfiguracaoEmailModal } from '../../components/ConfiguracaoEmailModal';
 
 export default function ListParams() {
   type IParams = {
@@ -32,6 +34,7 @@ export default function ListParams() {
   const [parametros, setParametros] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [idToDelete, setIdToDelete] = useState('');
+  const [configurandoEmail, setConfigurandoEmail] = useState(false);
 
   const toast = useToast();
   const history = useHistory();
@@ -123,17 +126,29 @@ export default function ListParams() {
               <Heading size="md" fontWeight="normal">
                 CADASTRO DE EMPRESAS
               </Heading>
-              <Button
-                as="a"
-                size="sm"
-                fontSize="sm"
-                colorScheme="orange"
-                leftIcon={<Icon as={RiAddLine} />}
-                cursor="pointer"
-                onClick={() => history.push('/cadastro/parametrizacao')}
-              >
-                Cadastrar Empresa
-              </Button>
+              <HStack spacing="3">
+                <Button
+                  size="sm"
+                  fontSize="sm"
+                  variant="outline"
+                  colorScheme="orange"
+                  leftIcon={<Icon as={RiMailSettingsLine} />}
+                  onClick={() => setConfigurandoEmail(true)}
+                >
+                  Configurar e-mail
+                </Button>
+                <Button
+                  as="a"
+                  size="sm"
+                  fontSize="sm"
+                  colorScheme="orange"
+                  leftIcon={<Icon as={RiAddLine} />}
+                  cursor="pointer"
+                  onClick={() => history.push('/cadastro/parametrizacao')}
+                >
+                  Cadastrar Empresa
+                </Button>
+              </HStack>
             </Flex>
 
             <Divider my="6" borderColor="gray.700" />
@@ -161,6 +176,12 @@ export default function ListParams() {
           </Box>
         </Wapper>
       </Flex>
+      {configurandoEmail && (
+        <ConfiguracaoEmailModal
+          empresas={parametros || []}
+          onClose={() => setConfigurandoEmail(false)}
+        />
+      )}
       <ExcludeDialog
         isOpen={isOpen}
         onClose={onClose}
