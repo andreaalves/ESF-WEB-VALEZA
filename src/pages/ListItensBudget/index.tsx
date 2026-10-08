@@ -30,6 +30,7 @@ import {
 } from 'react-icons/ai';
 
 import { useAuth } from '../../context/AuthContext';
+import { aprovarPedido } from '../../service/aprovacaoPedido';
 import { podeAprovarPedido } from '../../utils/podeAprovarPedido';
 import { ExcludeDialogOrder } from '../../components/ExcludeDialogOrder';
 
@@ -110,7 +111,7 @@ export default function ListItensBudget() {
 
   const approvedOrder = async () => {
     try {
-      await api.patch(`/api-essencial/v1/pedidos/update-status/${params.id}`);
+      await aprovarPedido(params.id, user?.name);
       toast({
         title: 'Pedido Aprovado',
         description: ``,

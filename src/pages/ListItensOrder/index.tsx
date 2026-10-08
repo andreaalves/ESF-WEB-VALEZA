@@ -30,6 +30,7 @@ import {
 } from 'react-icons/ai';
 
 import { useAuth } from '../../context/AuthContext';
+import { aprovarPedido, nomeDoAprovador } from '../../service/aprovacaoPedido';
 import { ExcludeDialogOrder } from '../../components/ExcludeDialogOrder';
 import { parseErroIntegracao } from '../../utils/parseErroIntegracao';
 import { podeAprovarPedido } from '../../utils/podeAprovarPedido';
@@ -122,9 +123,11 @@ export default function ListItensOrder() {
     return acc + valor.quantidade * valor.preco_liquido;
   }, 0);
 
+  const aprovadoPor = nomeDoAprovador(dados);
+
   const approvedOrder = async () => {
     try {
-      await api.patch(`/api-essencial/v1/pedidos/update-status/${params.id}`);
+      await aprovarPedido(params.id, user?.name);
       toast({
         title: 'Pedido Aprovado',
         description: ``,
@@ -296,6 +299,12 @@ export default function ListItensOrder() {
                             %
                           </Text>
                         </VStack>
+                        {aprovadoPor && (
+                          <VStack alignItems="start">
+                            <Text>APROVADO POR:</Text>
+                            <Text fontWeight="bold">{aprovadoPor}</Text>
+                          </VStack>
+                        )}
                         <VStack alignItems="start">
                           <Text>VALOR DO FRETE:</Text>
                           <Text fontWeight="bold">

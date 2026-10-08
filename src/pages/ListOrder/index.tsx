@@ -23,6 +23,7 @@ import { SiderbarResponsive } from '../../components/SiderbarResponsive';
 import { Wapper } from '../../components/Wapper';
 import OrderInfoModal from '../../components/OrderInfoModal';
 import { useAuth } from '../../context/AuthContext';
+import { aprovarPedido } from '../../service/aprovacaoPedido';
 import { podeAprovarPedido } from '../../utils/podeAprovarPedido';
 import { InputCustom } from '../../components/InputCustom/InputCustom';
 import { useForm } from 'react-hook-form';
@@ -202,7 +203,7 @@ export default function ListOrder() {
 
   async function handleApprove(id: string) {
     try {
-      await api.patch(`/api-essencial/v1/pedidos/update-status/${id}`);
+      await aprovarPedido(id, user?.name);
       toast({
         title: 'PEDIDO APROVADO',
         description: 'O pedido foi liberado e será integrado ao ERP.',
