@@ -13,7 +13,7 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { DateTime } from 'luxon';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Header } from '../../components/Header';
 import ReactTableComponent from '../../components/TableComponent';
 import api from '../../service/api';
@@ -24,6 +24,11 @@ import { Wapper } from '../../components/Wapper';
 import OrderInfoModal from '../../components/OrderInfoModal';
 import { useAuth } from '../../context/AuthContext';
 import { aprovarPedido } from '../../service/aprovacaoPedido';
+import {
+  integrarPedidosPendentes,
+  podeIntegrarPedidos,
+  RECARGAS_APOS_INTEGRAR_MS,
+} from '../../service/integracaoPedidos';
 import { podeAprovarPedido } from '../../utils/podeAprovarPedido';
 import { InputCustom } from '../../components/InputCustom/InputCustom';
 import { useForm } from 'react-hook-form';
@@ -48,6 +53,8 @@ export default function ListOrder() {
   const [showFilter, setShowFilter] = useState(-1);
   const [params, setParams] = useState<any[]>([]);
   const [reload, setReload] = useState(0);
+  const [integrando, setIntegrando] = useState(false);
+  const recargasAposIntegrar = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const history = useHistory();
   const { user } = useAuth();
@@ -56,6 +63,7 @@ export default function ListOrder() {
 
   // Gerentes (qualquer variação: regional, nacional, etc.) e o admin podem aprovar.
   const isGerente = podeAprovarPedido(user?.role);
+  const podeIntegrar = podeIntegrarPedidos(user?.role);
 
   useEffect(() => {
     async function getParams() {
@@ -120,6 +128,11 @@ export default function ListOrder() {
     }
     getPedidos();
   }, [orders.length, user.empresa.id, setValue, reload]);
+
+  useEffect(() => {
+    const recargas = recargasAposIntegrar;
+    return () => recargas.current.forEach(clearTimeout);
+  }, []);
 
   function showModal(index: number) {
     setShowIndex(index);
@@ -223,6 +236,39 @@ export default function ListOrder() {
     }
   }
 
+  // Manda agora ao ERP os pedidos liberados que ainda não foram (e os que
+  // voltaram com erro), sem esperar a rodada automática de 15 em 15 min.
+  async function handleIntegrar() {
+    setIntegrando(true);
+    try {
+      await integrarPedidosPendentes();
+      toast({
+        title: 'INTEGRAÇÃO INICIADA',
+        description:
+          'Os pedidos pendentes estão sendo enviados ao ERP. A lista atualiza sozinha em instantes.',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+      recargasAposIntegrar.current.forEach(clearTimeout);
+      recargasAposIntegrar.current = RECARGAS_APOS_INTEGRAR_MS.map((espera) =>
+        setTimeout(() => setReload((r) => r + 1), espera)
+      );
+    } catch (error: any) {
+      toast({
+        title: 'ERRO AO INTEGRAR',
+        description:
+          error?.response?.data?.message ||
+          'Não foi possível iniciar a integração. Tente novamente.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIntegrando(false);
+    }
+  }
+
   const column = getColumn(
     () => {},
     '/listar/pedido',
@@ -243,6 +289,22 @@ export default function ListOrder() {
               <Heading size="md" fontWeight="normal">
                 LISTA DE PEDIDOS
               </Heading>
+              {podeIntegrar && (
+                <Button
+                  size="sm"
+                  fontSize="sm"
+                  bg="green.500"
+                  color="white"
+                  _hover={{ bg: 'green.700' }}
+                  _focus={{ boxShadow: 'none' }}
+                  isLoading={integrando}
+                  loadingText="Enviando..."
+                  onClick={handleIntegrar}
+                  title="Envia agora ao ERP os pedidos pendentes, sem esperar a integração automática"
+                >
+                  Integrar pedidos
+                </Button>
+              )}
             </Flex>
 
             <Divider my="6" borderColor="gray.700" />
