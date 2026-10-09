@@ -11,6 +11,9 @@ import {
   Button,
   HStack,
   useToast,
+  Select as SelectBase,
+  FormControl,
+  FormLabel,
 } from '@chakra-ui/react';
 import { DateTime } from 'luxon';
 import { useEffect, useRef, useState } from 'react';
@@ -32,6 +35,10 @@ import {
 import { podeAprovarPedido } from '../../utils/podeAprovarPedido';
 import { InputCustom } from '../../components/InputCustom/InputCustom';
 import { useForm } from 'react-hook-form';
+import { pedidoComErroIntegracao } from '../../service/errosIntegracao';
+
+// Cast para evitar o TS2590 ("union type too complex") do Chakra.
+const Select = SelectBase as React.ComponentType<any>;
 
 export default function ListOrder() {
   const {
@@ -53,6 +60,7 @@ export default function ListOrder() {
   const [showFilter, setShowFilter] = useState(-1);
   const [params, setParams] = useState<any[]>([]);
   const [reload, setReload] = useState(0);
+  const [soErroIntegracao, setSoErroIntegracao] = useState(false);
   const [integrando, setIntegrando] = useState(false);
   const recargasAposIntegrar = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -151,6 +159,7 @@ export default function ListOrder() {
     setFinalDate('');
     setOrderFilter([]);
     setShowFilter(-1);
+    setSoErroIntegracao(false);
   }
 
   function handlePercentAprovaded() {
@@ -269,6 +278,16 @@ export default function ListOrder() {
     }
   }
 
+  // showFilter === 0 é a pesquisa por data que não achou nada.
+  const pedidosDoPeriodo =
+    showFilter === 0 ? [] : orderFilter.length === 0 ? orders : orderFilter;
+  // Pedido do app que o ERP recusou: é o que alguém precisa corrigir e
+  // reenviar, então dá para isolar só eles na lista.
+  const totalErroIntegracao = pedidosDoPeriodo.filter(pedidoComErroIntegracao).length;
+  const pedidosExibidos = soErroIntegracao
+    ? pedidosDoPeriodo.filter(pedidoComErroIntegracao)
+    : pedidosDoPeriodo;
+
   const column = getColumn(
     () => {},
     '/listar/pedido',
@@ -356,6 +375,28 @@ export default function ListOrder() {
                   onChange={handlePercentAprovaded}
                 />
               </Box>
+              <Box>
+                {/* Mesmo FormControl/FormLabel e tamanho padrão do InputCustom,
+                    senão o rótulo e a caixa ficam desalinhados das datas. */}
+                <FormControl>
+                  <FormLabel htmlFor="filtro-situacao">Situação</FormLabel>
+                  <Select
+                    id="filtro-situacao"
+                    value={soErroIntegracao ? 'ERRO_INTEGRACAO' : ''}
+                    onChange={(e: any) =>
+                      setSoErroIntegracao(e.target.value === 'ERRO_INTEGRACAO')
+                    }
+                    bgColor="gray.700"
+                    variant="filled"
+                    _hover={{ bgColor: 'gray.700' }}
+                  >
+                    <option value="">Todas as situações</option>
+                    <option value="ERRO_INTEGRACAO">
+                      Só erro de integração ({totalErroIntegracao})
+                    </option>
+                  </Select>
+                </FormControl>
+              </Box>
 
               <Flex mt={8} flexDir="row">
                 <Button
@@ -374,7 +415,6 @@ export default function ListOrder() {
                   Limpar
                 </Button>
               </Flex>
-              <Box mt={8}></Box>
             </Grid>
 
             <Divider my="6" borderColor="gray.700" />
@@ -384,15 +424,19 @@ export default function ListOrder() {
                 <Spinner color="white" />
               ) : (
                 <>
-                  {orders.length === 0 || showFilter === 0 ? (
+                  {pedidosExibidos.length === 0 ? (
                     <Flex>
-                      <Text color="orange.200">Sem pedidos para exibir</Text>
+                      <Text color="orange.200">
+                        {soErroIntegracao
+                          ? 'Nenhum pedido com erro de integração'
+                          : 'Sem pedidos para exibir'}
+                      </Text>
                     </Flex>
                   ) : (
                     <>
                       <ReactTableComponent
                         columns={column}
-                        data={orderFilter.length === 0 ? orders : orderFilter}
+                        data={pedidosExibidos}
                         isPagenable
                       />
 
