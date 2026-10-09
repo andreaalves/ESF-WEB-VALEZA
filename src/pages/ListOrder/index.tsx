@@ -35,7 +35,11 @@ import {
 import { podeAprovarPedido } from '../../utils/podeAprovarPedido';
 import { InputCustom } from '../../components/InputCustom/InputCustom';
 import { useForm } from 'react-hook-form';
-import { pedidoComErroIntegracao } from '../../service/errosIntegracao';
+import {
+  codigoSituacao,
+  opcoesDeSituacao,
+  rotuloSituacao,
+} from '../../utils/situacaoPedido';
 
 // Cast para evitar o TS2590 ("union type too complex") do Chakra.
 const Select = SelectBase as React.ComponentType<any>;
@@ -60,7 +64,7 @@ export default function ListOrder() {
   const [showFilter, setShowFilter] = useState(-1);
   const [params, setParams] = useState<any[]>([]);
   const [reload, setReload] = useState(0);
-  const [soErroIntegracao, setSoErroIntegracao] = useState(false);
+  const [situacaoFiltro, setSituacaoFiltro] = useState('');
   const [integrando, setIntegrando] = useState(false);
   const recargasAposIntegrar = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -159,7 +163,7 @@ export default function ListOrder() {
     setFinalDate('');
     setOrderFilter([]);
     setShowFilter(-1);
-    setSoErroIntegracao(false);
+    setSituacaoFiltro('');
   }
 
   function handlePercentAprovaded() {
@@ -281,11 +285,11 @@ export default function ListOrder() {
   // showFilter === 0 é a pesquisa por data que não achou nada.
   const pedidosDoPeriodo =
     showFilter === 0 ? [] : orderFilter.length === 0 ? orders : orderFilter;
-  // Pedido do app que o ERP recusou: é o que alguém precisa corrigir e
-  // reenviar, então dá para isolar só eles na lista.
-  const totalErroIntegracao = pedidosDoPeriodo.filter(pedidoComErroIntegracao).length;
-  const pedidosExibidos = soErroIntegracao
-    ? pedidosDoPeriodo.filter(pedidoComErroIntegracao)
+  // Dá para isolar na lista os pedidos de uma situação só (em análise para
+  // aprovar, erro de integração para corrigir e reenviar, etc.).
+  const situacoes = opcoesDeSituacao(pedidosDoPeriodo, situacaoFiltro);
+  const pedidosExibidos = situacaoFiltro
+    ? pedidosDoPeriodo.filter((o: any) => codigoSituacao(o) === situacaoFiltro)
     : pedidosDoPeriodo;
 
   const column = getColumn(
@@ -382,18 +386,18 @@ export default function ListOrder() {
                   <FormLabel htmlFor="filtro-situacao">Situação</FormLabel>
                   <Select
                     id="filtro-situacao"
-                    value={soErroIntegracao ? 'ERRO_INTEGRACAO' : ''}
-                    onChange={(e: any) =>
-                      setSoErroIntegracao(e.target.value === 'ERRO_INTEGRACAO')
-                    }
+                    value={situacaoFiltro}
+                    onChange={(e: any) => setSituacaoFiltro(e.target.value)}
                     bgColor="gray.700"
                     variant="filled"
                     _hover={{ bgColor: 'gray.700' }}
                   >
                     <option value="">Todas as situações</option>
-                    <option value="ERRO_INTEGRACAO">
-                      Só erro de integração ({totalErroIntegracao})
-                    </option>
+                    {situacoes.map((s) => (
+                      <option key={s.codigo} value={s.codigo}>
+                        {s.rotulo} ({s.total})
+                      </option>
+                    ))}
                   </Select>
                 </FormControl>
               </Box>
@@ -427,8 +431,8 @@ export default function ListOrder() {
                   {pedidosExibidos.length === 0 ? (
                     <Flex>
                       <Text color="orange.200">
-                        {soErroIntegracao
-                          ? 'Nenhum pedido com erro de integração'
+                        {situacaoFiltro
+                          ? `Nenhum pedido na situação "${rotuloSituacao(situacaoFiltro)}"`
                           : 'Sem pedidos para exibir'}
                       </Text>
                     </Flex>
