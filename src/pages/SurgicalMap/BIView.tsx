@@ -219,6 +219,10 @@ const fmtLeadTime = (horas: number) =>
     horas >= 48 ? `${(horas / 24).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} dias`
     : `${horas.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} h`;
 
+// Rótulo de eixo: o ApexCharts não trunca nome comprido em barra horizontal —
+// ele vaza pra fora do card pela esquerda. O nome inteiro fica no tooltip.
+const nomeCurto = (nome: string) => (nome.length > 18 ? `${nome.slice(0, 17).trimEnd()}…` : nome);
+
 // Opções base dos gráficos — acompanham o toggle claro/escuro (ver `ink` no
 // componente). Grade recessiva (baixo contraste, tracejada) e sem toolbar.
 function buildBaseOptions(ink: typeof INK_DARK, ehClaro: boolean): any {
@@ -636,7 +640,8 @@ export default function BIView({ pedidos }: { pedidos: any[] }) {
         });
         const top = Object.entries(m).sort((a, b) => b[1].n - a[1].n).slice(0, 7);
         return {
-            labels: top.map(([nome]) => nome),
+            nomes: top.map(([nome]) => nome),
+            labels: top.map(([nome]) => nomeCurto(nome)),
             valores: top.map(([, v]) => v.n),
             valoresRs: top.map(([, v]) => v.valor),
         };
@@ -662,7 +667,8 @@ export default function BIView({ pedidos }: { pedidos: any[] }) {
         });
         const top = Object.values(m).sort((a, b) => b.n - a.n).slice(0, 7);
         return {
-            labels: top.map(c => c.nome),
+            nomes: top.map(c => c.nome),
+            labels: top.map(c => nomeCurto(c.nome)),
             valores: top.map(c => c.n),
             valoresRs: top.map(c => c.valor),
         };
@@ -1124,6 +1130,7 @@ export default function BIView({ pedidos }: { pedidos: any[] }) {
                                 legend: { show: false },
                                 tooltip: {
                                     ...baseOptions.tooltip,
+                                    x: { formatter: (v: string, opt: any) => ranking.nomes[opt.dataPointIndex] || v },
                                     y: {
                                         formatter: (v: number, opt: any) =>
                                             `${v} pedido(s) · ${fmtMoedaCompacta(ranking.valoresRs[opt.dataPointIndex] || 0)}`,
