@@ -22,11 +22,12 @@ export function getColumn(
 ) {
   const columns: any[] = [
     {
+      // Mesmo código que o app mostra (primeiros 8 caracteres do pedido_id),
+      // e o accessor devolve esse texto para o filtro da coluna achar o pedido.
       Header: 'Código',
-      accessor: 'id',
-      Cell: ({ row }: any) => (
-        <span>ESF{row.original.pedido_id.slice(-5)}</span>
-      ),
+      id: 'codigo',
+      accessor: (row: any) => String(row.pedido_id ?? '').substring(0, 8),
+      Cell: ({ value }: any) => <span>{value}</span>,
     },
     {
       Header: 'Pedido',
