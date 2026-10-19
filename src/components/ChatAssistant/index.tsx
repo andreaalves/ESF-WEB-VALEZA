@@ -7,6 +7,7 @@ import {
   Spinner as SpinnerBase,
   VStack as VStackBase,
 } from '@chakra-ui/react';
+import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import * as FiIcons from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +24,16 @@ const Spinner = SpinnerBase as React.ComponentType<any>;
 const VStack = VStackBase as React.ComponentType<any>;
 
 const ORANGE = '#fe8026';
+
+// Em `npm start` o chat fala direto com o MCP rodando na máquina
+// (mcp-valeza: `python -m valeza_mcp.web`); desligado, cai no aviso de
+// "em integração". No build publicado, segue pelo ESF-API. Para apontar
+// para outro lugar: REACT_APP_ASSISTENTE_URL.
+const ASSISTENTE_URL =
+  process.env.REACT_APP_ASSISTENTE_URL ||
+  (process.env.NODE_ENV === 'development'
+    ? 'http://127.0.0.1:8010/api/assistente/chat'
+    : '');
 
 interface Mensagem {
   autor: 'ia' | 'usuario';
@@ -61,12 +72,15 @@ export function ChatAssistant() {
       // CONTRATO BACKEND (Murilo): POST /api-essencial/v1/assistente/chat
       // body: { empresa_id, usuario_id, mensagem, historico }
       // retorno: { resposta: string }
-      const response = await api.post('/api-essencial/v1/assistente/chat', {
+      const corpo = {
         empresa_id: user?.empresa?.id,
         usuario_id: user?.id,
         mensagem: texto_limpo,
         historico: mensagens,
-      });
+      };
+      const response = ASSISTENTE_URL
+        ? await axios.post(ASSISTENTE_URL, corpo)
+        : await api.post('/api-essencial/v1/assistente/chat', corpo);
 
       const resposta = response?.data?.resposta;
       setMensagens((m) => [
