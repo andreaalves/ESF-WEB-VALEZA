@@ -299,7 +299,8 @@ export function ChatAssistant() {
                 justify={m.autor === 'usuario' ? 'flex-end' : 'flex-start'}
               >
                 <Box
-                  maxWidth="80%"
+                  // A resposta ocupa a largura toda: listas longas não quebram cedo.
+                  maxWidth={m.autor === 'usuario' ? '80%' : '100%'}
                   px="3"
                   py="2"
                   borderRadius="12px"
