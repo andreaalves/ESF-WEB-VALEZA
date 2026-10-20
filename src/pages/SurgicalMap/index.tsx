@@ -910,6 +910,26 @@ function inicioReal(item: Scheduling): DateTime | null {
     return combinarDataHora(item.dataEmissao, item.horaEmissao) ?? dt;
 }
 
+// Data e hora de inclusão do pedido, no horário local, para EXIBIR (lista,
+// Kanban) e para o dia usado no filtro de período. Mesma regra de inicioReal,
+// com duas diferenças:
+// - pedido do App: o instante vem em UTC; o dia sai do horário local (sem isso,
+//   pedido incluído às 22h30 aparecia no dia seguinte);
+// - pedido antigo do Protheus, sem hora_emissao: só o dia é conhecido. A hora
+//   fica de fora (temHora=false), em vez de aparecer "00:00" ou "21:00" falso.
+function entradaDoPedido(dataEmissao?: string, horaEmissao?: string): { momento: DateTime; temHora: boolean } | null {
+    if (!dataEmissao) return null;
+    const dt = DateTime.fromISO(dataEmissao);
+    if (!dt.isValid) return null;
+    const utc = dt.toUTC();
+    const soData = utc.hour === 0 && utc.minute === 0 && utc.second === 0 && utc.millisecond === 0;
+    if (!soData) return { momento: dt, temHora: true };
+    const combinado = combinarDataHora(dataEmissao, horaEmissao);
+    if (combinado) return { momento: combinado, temHora: true };
+    const dia = dataCalendario(dataEmissao);
+    return dia ? { momento: DateTime.fromISO(dia), temHora: false } : null;
+}
+
 // Se sabemos o momento real da NF (backend ou carimbo client-side), a UI
 // mostra o tempo calculado; sem nenhum dos dois, mostra só "Faturado".
 function temFimConfiavel(item: Scheduling): boolean {
@@ -980,6 +1000,8 @@ function MapRow({ item }: { item: Scheduling }) {
     const tipoColor = tipoColorOf(item.tipo); // cor do tipo (tom escuro, legível no branco)
     const dt = DateTime.fromISO(item.dataAgendamento);
     const dataLabel = dt.isValid ? dt.toFormat("dd/MM/yyyy") : "—";
+    const entrada = entradaDoPedido(item.dataEmissao, item.horaEmissao);
+    const horaInclusao = entrada?.temHora ? entrada.momento.toFormat("HH:mm") : null;
 
     const isUrgencia = item.tipo === "URGENCIA";
     const isConsignado = item.tipo === "CONSIGNADO";
@@ -1085,14 +1107,26 @@ function MapRow({ item }: { item: Scheduling }) {
             </RowFlex>
 
             {/* DATA DO PEDIDO — data de entrega agendada quando existe; na falta
-                dela (o caso comum na expedição) mostra a emissão do pedido. */}
+                dela (o caso comum na expedição), a data e a hora de inclusão do
+                pedido. Com entrega agendada, a inclusão vai numa linha a mais. */}
             <RowFlex flex={1.3} align="center" px={3} borderLeft="1px solid" borderColor={DIV} direction="column" gap={0} alignItems="flex-start" justify="center"
-                title={item.dataCirurgia ? "Data de entrega agendada pelo vendedor" : "Pedido sem entrega agendada — mostrando a data de emissão do pedido"}>
+                title={item.dataCirurgia ? "Data de entrega agendada pelo vendedor" : "Pedido sem entrega agendada — data e hora de inclusão do pedido"}>
                 <RowText fontWeight="600" fontSize="sm" color={TXT_STRONG} noOfLines={1}>{dataLabel}</RowText>
-                {item.horaCirurgia ? (
-                    <RowText fontSize="11px" color={TXT_SECONDARY} noOfLines={1}>{item.horaCirurgia}</RowText>
-                ) : !item.dataCirurgia && (
-                    <RowText fontSize="10px" color={TXT_PLACEHOLDER} noOfLines={1}>emissão do pedido</RowText>
+                {item.dataCirurgia ? (
+                    <>
+                        {item.horaCirurgia && (
+                            <RowText fontSize="11px" color={TXT_SECONDARY} noOfLines={1}>{item.horaCirurgia}</RowText>
+                        )}
+                        {entrada && (
+                            <RowText fontSize="10px" color={TXT_PLACEHOLDER} noOfLines={1}>
+                                incluído {entrada.momento.toFormat("dd/MM")}{horaInclusao ? ` às ${horaInclusao}` : ""}
+                            </RowText>
+                        )}
+                    </>
+                ) : (
+                    <RowText fontSize="11px" color={TXT_SECONDARY} noOfLines={1}>
+                        {horaInclusao ? `incluído às ${horaInclusao}` : "data de inclusão"}
+                    </RowText>
                 )}
             </RowFlex>
 
@@ -1238,6 +1272,8 @@ function KanbanCard({ item, onClick, materiais }: { item: Scheduling; onClick: (
     const isManual = !!item.statusTotvs && item.statusWorkflow !== item.statusTotvs;
     const dt = DateTime.fromISO(item.dataAgendamento);
     const dataLabel = dt.isValid ? dt.toFormat("dd/MM") : "—";
+    const entrada = entradaDoPedido(item.dataEmissao, item.horaEmissao);
+    const horaInclusao = entrada?.temHora ? entrada.momento.toFormat("HH:mm") : null;
     // Cor da data: vermelho se atrasada, laranja se vencendo (≤2 dias e ainda
     // sem NF); no resto acompanha a tinta do card (CARD_INK — branca no tema
     // escuro, escura no claro), em vez de branco fixo.
@@ -1386,19 +1422,23 @@ function KanbanCard({ item, onClick, materiais }: { item: Scheduling; onClick: (
                     </RowFlex>
                 )}
 
-                {/* Data / NF / pedido — ícones coloridos, mesmo formato das linhas acima */}
+                {/* Data / NF / pedido — ícones coloridos, mesmo formato das linhas acima.
+                    Sem entrega agendada (o comum na expedição), a data e a hora de
+                    inclusão do pedido; com entrega, a data dela e a inclusão embaixo. */}
                 <RowFlex align="flex-start" gap={3} mb={1} mt={2}
-                    title={item.dataCirurgia ? "Data de entrega (agendada pelo vendedor)" : "Pedido sem entrega agendada — data de emissão do pedido"}>
+                    title={item.dataCirurgia ? "Data de entrega (agendada pelo vendedor)" : "Pedido sem entrega agendada — data e hora de inclusão do pedido"}>
                     <Icon as={FaRegClock} w={3} h={3} color="#F6E05E" flexShrink={0} mt="3px" />
                     <RowBox minW={0}>
                         <RowText fontSize="12px" fontWeight="600" color={dateTextColor} noOfLines={1} lineHeight="1.3">
-                            {dataLabel}
+                            {item.dataCirurgia || !horaInclusao ? dataLabel : `${dataLabel} às ${horaInclusao}`}
                         </RowText>
-                        {!item.dataCirurgia && (
-                            <RowText fontSize="9px" color="whiteAlpha.500" noOfLines={1} lineHeight="1.3">
-                                emissão do pedido
-                            </RowText>
-                        )}
+                        <RowText fontSize="9px" color="whiteAlpha.500" noOfLines={1} lineHeight="1.3">
+                            {!item.dataCirurgia
+                                ? "inclusão do pedido"
+                                : entrada
+                                    ? `incluído ${entrada.momento.toFormat("dd/MM")}${horaInclusao ? ` às ${horaInclusao}` : ""}`
+                                    : ""}
+                        </RowText>
                     </RowBox>
                 </RowFlex>
                 {item.numeroNF && (
@@ -2219,7 +2259,12 @@ export default function SurgicalMap() {
                         // Data exibida: a da cirurgia quando existe; consignado/venda não
                         // têm cirurgia marcada, então cai na emissão do pedido (o filtro de
                         // período e a ordenação precisam de uma data sempre preenchida).
-                        dataAgendamento: dataCirurgia || (p.data_emissao || "").substring(0, 10),
+                        // O dia da emissão sai de entradaDoPedido (horário local), não
+                        // do texto UTC: senão o pedido das 22h30 caía no dia seguinte
+                        // também no filtro de período.
+                        dataAgendamento: dataCirurgia
+                            || entradaDoPedido(p.data_emissao, p.hora_emissao)?.momento.toISODate()
+                            || (p.data_emissao || "").substring(0, 10),
                         dataCirurgia,
                         horaCirurgia: normalizeHoraCirurgia(agend?.hora_agendamento) ?? horaCirurgiaDoPedido(p, payload),
                         tipo,
