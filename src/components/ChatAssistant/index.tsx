@@ -27,14 +27,13 @@ const ORANGE = '#fe8026';
 
 // Endereço do assistente (o MCP da Valeza, repositório ESF-AGENTE-VLZ).
 // Em `npm start`, fala com o MCP rodando na máquina
-// (`python -m valeza_mcp.web`). No build publicado, use
-// REACT_APP_ASSISTENTE_URL com o endereço do MCP no servidor
-// (https://.../api/assistente/chat). Sem ela, segue pelo ESF-API.
+// (`python -m valeza_mcp.web`); no build publicado, com o MCP no servidor.
+// REACT_APP_ASSISTENTE_URL troca o destino nos dois casos.
 const ASSISTENTE_URL =
   process.env.REACT_APP_ASSISTENTE_URL ||
   (process.env.NODE_ENV === 'development'
     ? 'http://127.0.0.1:8010/api/assistente/chat'
-    : '');
+    : 'https://valeza-mcp-valeza-agt-mcp.rxlirp.easypanel.host/api/assistente/chat');
 
 interface Mensagem {
   autor: 'ia' | 'usuario';
