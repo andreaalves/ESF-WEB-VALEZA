@@ -45,6 +45,13 @@ interface Mensagem {
   texto: string;
 }
 
+// A resposta aparece sendo escrita, mas rápido: cada letra leva 12 ms e a
+// resposta inteira, por maior que seja, termina em até 1,5 s, para o usuário
+// não achar que travou.
+const MS_POR_LETRA = 12;
+const DURACAO_MAX_ESCRITA_MS = 1500;
+const INTERVALO_ESCRITA_MS = 20;
+
 // Sugestões de "acesso rápido" exibidas quando a conversa está vazia.
 const SUGESTOES = [
   'Como estão minhas metas este mês?',
@@ -58,6 +65,9 @@ export function ChatAssistant() {
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [texto, setTexto] = useState('');
   const [carregando, setCarregando] = useState(false);
+  // A resposta já chegou e está aparecendo aos poucos no balão.
+  const [escrevendo, setEscrevendo] = useState(false);
+  const timerEscrita = useRef<number>();
   const fimRef = useRef<HTMLDivElement>(null);
 
   // Mantém o scroll no fim sempre que chega mensagem nova.
@@ -65,9 +75,36 @@ export function ChatAssistant() {
     fimRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [mensagens, carregando]);
 
+  // Para a escrita se o balão sair da tela (ex.: logout no meio da resposta).
+  useEffect(() => () => window.clearInterval(timerEscrita.current), []);
+
+  // Mostra a resposta aos poucos no balão, como se o assistente estivesse
+  // digitando. Vai por letras (Array.from), para não partir um emoji ao meio.
+  function escreverResposta(textoCompleto: string) {
+    const letras = Array.from(textoCompleto);
+    const duracao = Math.min(DURACAO_MAX_ESCRITA_MS, letras.length * MS_POR_LETRA);
+    const passos = Math.max(1, Math.round(duracao / INTERVALO_ESCRITA_MS));
+    const letrasPorPasso = Math.ceil(letras.length / passos);
+    let mostradas = 0;
+
+    setMensagens((m) => [...m, { autor: 'ia', texto: '' }]);
+    setEscrevendo(true);
+    timerEscrita.current = window.setInterval(() => {
+      mostradas = Math.min(letras.length, mostradas + letrasPorPasso);
+      const parcial = letras.slice(0, mostradas).join('');
+      setMensagens((m) => [...m.slice(0, -1), { autor: 'ia', texto: parcial }]);
+      if (mostradas >= letras.length) {
+        window.clearInterval(timerEscrita.current);
+        setEscrevendo(false);
+      }
+    }, INTERVALO_ESCRITA_MS);
+  }
+
   async function enviar(pergunta: string) {
     const texto_limpo = pergunta.trim();
-    if (!texto_limpo || carregando) return;
+    // Enquanto a resposta anterior é escrita, não envia: o histórico iria com
+    // a resposta pela metade.
+    if (!texto_limpo || carregando || escrevendo) return;
 
     setMensagens((m) => [...m, { autor: 'usuario', texto: texto_limpo }]);
     setTexto('');
@@ -93,15 +130,9 @@ export function ChatAssistant() {
         : await api.post('/api-essencial/v1/assistente/chat', corpo);
 
       const resposta = response?.data?.resposta;
-      setMensagens((m) => [
-        ...m,
-        {
-          autor: 'ia',
-          texto:
-            resposta ||
-            'Não consegui entender. Pode reformular a pergunta?',
-        },
-      ]);
+      escreverResposta(
+        resposta || 'Não consegui entender. Pode reformular a pergunta?'
+      );
     } catch (error: any) {
       // 401: login expirado. 429: limite de perguntas por minuto do MCP.
       // Outros (MCP fora do ar ou ainda não publicado): aviso de integração.
@@ -175,7 +206,9 @@ export function ChatAssistant() {
                 Assistente ESF
               </Text>
               <Text fontSize="xs" color="whiteAlpha.800">
-                {carregando ? 'digitando...' : 'Online • responde sobre seus dados'}
+                {carregando || escrevendo
+                  ? 'digitando...'
+                  : 'Online • responde sobre seus dados'}
               </Text>
             </Box>
             <IconButton
@@ -318,7 +351,7 @@ export function ChatAssistant() {
               bg={ORANGE}
               color="white"
               _hover={{ bg: '#d9641a' }}
-              isDisabled={!texto.trim() || carregando}
+              isDisabled={!texto.trim() || carregando || escrevendo}
               icon={<FiIcons.FiSend size={16} />}
               onClick={() => enviar(texto)}
             />
