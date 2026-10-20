@@ -45,12 +45,36 @@ interface Mensagem {
   texto: string;
 }
 
-// A resposta aparece sendo escrita, mas rápido: cada letra leva 12 ms e a
-// resposta inteira, por maior que seja, termina em até 1,5 s, para o usuário
-// não achar que travou.
-const MS_POR_LETRA = 12;
-const DURACAO_MAX_ESCRITA_MS = 1500;
-const INTERVALO_ESCRITA_MS = 20;
+// A resposta aparece como se alguém digitasse: palavra por palavra, cada uma
+// no tempo de digitá-la, com um ritmo um pouco irregular e pausas depois de
+// vírgula, de ponto e na quebra de linha. Resposta longa acelera por igual
+// para terminar em até 4 s, para o usuário não achar que travou.
+const MS_POR_LETRA = 28;
+const VARIACAO_MS = 40;
+const PAUSA_VIRGULA_MS = 90;
+const PAUSA_FRASE_MS = 220;
+const PAUSA_LINHA_MS = 300;
+const DURACAO_MAX_ESCRITA_MS = 4000;
+
+// Divide a resposta em palavras (cada uma com o espaço que vem depois) e diz,
+// para cada uma, até onde mostrar o texto e quanto esperar antes da próxima.
+// Cortar só entre palavras também evita partir um emoji ao meio.
+function planoDeEscrita(texto: string): { ate: number; espera: number }[] {
+  const palavras = texto.match(/\S+\s*|\s+/g) ?? [texto];
+  let ate = 0;
+  const plano = palavras.map((palavra) => {
+    ate += palavra.length;
+    const semEspaco = palavra.trimEnd();
+    let espera = semEspaco.length * MS_POR_LETRA + Math.random() * VARIACAO_MS;
+    if (/[.!?…]$/.test(semEspaco)) espera += PAUSA_FRASE_MS;
+    else if (/[,;:]$/.test(semEspaco)) espera += PAUSA_VIRGULA_MS;
+    if (palavra.includes('\n')) espera += PAUSA_LINHA_MS;
+    return { ate, espera };
+  });
+  const total = plano.reduce((soma, passo) => soma + passo.espera, 0);
+  const fator = total > DURACAO_MAX_ESCRITA_MS ? DURACAO_MAX_ESCRITA_MS / total : 1;
+  return plano.map((passo) => ({ ate: passo.ate, espera: passo.espera * fator }));
+}
 
 // Sugestões de "acesso rápido" exibidas quando a conversa está vazia.
 const SUGESTOES = [
@@ -76,28 +100,28 @@ export function ChatAssistant() {
   }, [mensagens, carregando]);
 
   // Para a escrita se o balão sair da tela (ex.: logout no meio da resposta).
-  useEffect(() => () => window.clearInterval(timerEscrita.current), []);
+  useEffect(() => () => window.clearTimeout(timerEscrita.current), []);
 
-  // Mostra a resposta aos poucos no balão, como se o assistente estivesse
-  // digitando. Vai por letras (Array.from), para não partir um emoji ao meio.
+  // Mostra a resposta aos poucos no balão, seguindo o planoDeEscrita.
   function escreverResposta(textoCompleto: string) {
-    const letras = Array.from(textoCompleto);
-    const duracao = Math.min(DURACAO_MAX_ESCRITA_MS, letras.length * MS_POR_LETRA);
-    const passos = Math.max(1, Math.round(duracao / INTERVALO_ESCRITA_MS));
-    const letrasPorPasso = Math.ceil(letras.length / passos);
-    let mostradas = 0;
+    const plano = planoDeEscrita(textoCompleto);
+    let passo = 0;
 
     setMensagens((m) => [...m, { autor: 'ia', texto: '' }]);
     setEscrevendo(true);
-    timerEscrita.current = window.setInterval(() => {
-      mostradas = Math.min(letras.length, mostradas + letrasPorPasso);
-      const parcial = letras.slice(0, mostradas).join('');
+
+    const escreverProxima = () => {
+      const { ate, espera } = plano[passo];
+      const parcial = textoCompleto.slice(0, ate);
       setMensagens((m) => [...m.slice(0, -1), { autor: 'ia', texto: parcial }]);
-      if (mostradas >= letras.length) {
-        window.clearInterval(timerEscrita.current);
+      passo += 1;
+      if (passo < plano.length) {
+        timerEscrita.current = window.setTimeout(escreverProxima, espera);
+      } else {
         setEscrevendo(false);
       }
-    }, INTERVALO_ESCRITA_MS);
+    };
+    timerEscrita.current = window.setTimeout(escreverProxima, 0);
   }
 
   async function enviar(pergunta: string) {
