@@ -4,8 +4,8 @@ import {
   Text as TextBase,
   Input as InputBase,
   IconButton as IconButtonBase,
-  Spinner as SpinnerBase,
   VStack as VStackBase,
+  keyframes,
 } from '@chakra-ui/react';
 import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
@@ -20,10 +20,15 @@ const Flex = FlexBase as React.ComponentType<any>;
 const Text = TextBase as React.ComponentType<any>;
 const Input = InputBase as React.ComponentType<any>;
 const IconButton = IconButtonBase as React.ComponentType<any>;
-const Spinner = SpinnerBase as React.ComponentType<any>;
 const VStack = VStackBase as React.ComponentType<any>;
 
 const ORANGE = '#fe8026';
+
+// Cada ponto do "digitando" sobe e acende, um depois do outro.
+const pulo = keyframes`
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+`;
 
 // Endereço do assistente (o MCP da Valeza, repositório ESF-AGENTE-VLZ).
 // Em `npm start`, fala com o MCP rodando na máquina
@@ -170,7 +175,7 @@ export function ChatAssistant() {
                 Assistente ESF
               </Text>
               <Text fontSize="xs" color="whiteAlpha.800">
-                Online • responde sobre seus dados
+                {carregando ? 'digitando...' : 'Online • responde sobre seus dados'}
               </Text>
             </Box>
             <IconButton
@@ -255,11 +260,32 @@ export function ChatAssistant() {
               </Flex>
             ))}
 
+            {/* "Digitando", como no WhatsApp: três pontos pulando enquanto a resposta não chega. */}
             {carregando && (
               <Flex justify="flex-start">
-                <Box px="3" py="2" borderRadius="12px" bg="gray.700">
-                  <Spinner size="sm" color="orange.200" />
-                </Box>
+                <Flex
+                  role="status"
+                  aria-label="Assistente digitando"
+                  align="center"
+                  sx={{ gap: '4px' }}
+                  px="14px"
+                  py="12px"
+                  borderRadius="12px"
+                  borderBottomLeftRadius="2px"
+                  bg="gray.700"
+                >
+                  {[0, 0.2, 0.4].map((atraso) => (
+                    <Box
+                      key={atraso}
+                      width="7px"
+                      height="7px"
+                      borderRadius="50%"
+                      bg="gray.50"
+                      opacity={0.4}
+                      animation={`${pulo} 1.2s ${atraso}s infinite ease-in-out`}
+                    />
+                  ))}
+                </Flex>
               </Flex>
             )}
 
