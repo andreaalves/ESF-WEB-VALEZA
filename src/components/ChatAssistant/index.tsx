@@ -25,10 +25,11 @@ const VStack = VStackBase as React.ComponentType<any>;
 
 const ORANGE = '#fe8026';
 
-// Em `npm start` o chat fala direto com o MCP rodando na máquina
-// (mcp-valeza: `python -m valeza_mcp.web`); desligado, cai no aviso de
-// "em integração". No build publicado, segue pelo ESF-API. Para apontar
-// para outro lugar: REACT_APP_ASSISTENTE_URL.
+// Endereço do assistente (o MCP da Valeza, repositório ESF-AGENTE-VLZ).
+// Em `npm start`, fala com o MCP rodando na máquina
+// (`python -m valeza_mcp.web`). No build publicado, use
+// REACT_APP_ASSISTENTE_URL com o endereço do MCP no servidor
+// (https://.../api/assistente/chat). Sem ela, segue pelo ESF-API.
 const ASSISTENTE_URL =
   process.env.REACT_APP_ASSISTENTE_URL ||
   (process.env.NODE_ENV === 'development'
@@ -78,8 +79,13 @@ export function ChatAssistant() {
         mensagem: texto_limpo,
         historico: mensagens,
       };
+      // O MCP só responde a quem está logado: vai junto o mesmo login
+      // (Bearer) que o `api` usa com o ESF, e o MCP o confere com o ESF.
       const response = ASSISTENTE_URL
-        ? await axios.post(ASSISTENTE_URL, corpo)
+        ? await axios.post(ASSISTENTE_URL, corpo, {
+            headers: { Authorization: api.defaults.headers.authorization },
+            timeout: 120000,
+          })
         : await api.post('/api-essencial/v1/assistente/chat', corpo);
 
       const resposta = response?.data?.resposta;
@@ -92,17 +98,18 @@ export function ChatAssistant() {
             'Não consegui entender. Pode reformular a pergunta?',
         },
       ]);
-    } catch (error) {
-      // Demo-fallback enquanto o endpoint não existe (padrão do projeto).
-      setMensagens((m) => [
-        ...m,
-        {
-          autor: 'ia',
-          texto:
-            'O assistente ainda está sendo integrado. Em breve vou responder ' +
-            'com os dados de metas, pedidos e desempenho da sua equipe.',
-        },
-      ]);
+    } catch (error: any) {
+      // 401: login expirado. 429: limite de perguntas por minuto do MCP.
+      // Outros (MCP fora do ar ou ainda não publicado): aviso de integração.
+      const status = error?.response?.status;
+      const texto =
+        status === 401
+          ? 'Sua sessão expirou. Saia e entre de novo para continuar.'
+          : status === 429
+            ? 'Muitas perguntas em pouco tempo. Aguarde um minuto e tente de novo.'
+            : 'O assistente ainda está sendo integrado. Em breve vou responder ' +
+              'com os dados de metas, pedidos e desempenho da sua equipe.';
+      setMensagens((m) => [...m, { autor: 'ia', texto }]);
     } finally {
       setCarregando(false);
     }
