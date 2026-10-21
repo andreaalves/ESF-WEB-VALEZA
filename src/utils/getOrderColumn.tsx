@@ -58,9 +58,14 @@ export function getColumn(
           row.original.hora_emissao
         );
         if (!entrada) return '-';
-        return entrada.temHora
-          ? entrada.momento.toFormat("dd/MM/yyyy 'às' HH:mm")
-          : entrada.momento.toFormat('dd/MM/yyyy');
+        // Sem quebra: a hora fica na mesma linha da data.
+        return (
+          <span style={{ whiteSpace: 'nowrap' }}>
+            {entrada.temHora
+              ? entrada.momento.toFormat("dd/MM/yyyy 'às' HH:mm")
+              : entrada.momento.toFormat('dd/MM/yyyy')}
+          </span>
+        );
       },
     },
     {
