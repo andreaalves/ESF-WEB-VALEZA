@@ -5,6 +5,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { ParametrizacaoProvider } from "./context/ParametrizacaoContext";
 import { ThemeModeProvider } from "./context/ThemeModeContext";
 import { SidebarProvider } from "./context/SidebarContext";
+import { AssistenteProvider } from "./context/AssistenteContext";
 import "./styles/style.css";
 import "./styles/light-theme.css";
 // import "./estilo.css";
@@ -18,7 +19,10 @@ export function App() {
           <AuthProvider>
             <ParametrizacaoProvider>
               <SidebarProvider>
-                <Routes />
+                {/* A conversa do assistente, comum ao balão e à página. */}
+                <AssistenteProvider>
+                  <Routes />
+                </AssistenteProvider>
               </SidebarProvider>
             </ParametrizacaoProvider>
           </AuthProvider>

@@ -12,7 +12,7 @@ import {
 } from 'react-icons/hi';
 import { IoSettingsOutline } from 'react-icons/io5';
 import { RiMoneyDollarCircleLine } from 'react-icons/ri';
-import { FiTarget, FiBarChart2 } from 'react-icons/fi';
+import { FiTarget, FiBarChart2, FiMessageCircle } from 'react-icons/fi';
 
 import { FaColumns, FaChartPie, FaTruck, FaFileSignature } from 'react-icons/fa';
 
@@ -48,6 +48,8 @@ export const SiderbarResponsive = () => {
     >
       <NavFlex as="aside" flexDir="column" justifyContent="center" mt="100px">
 
+        <SidebarItem name="Assistente ESF" nav={navSize} icon={FiMessageCircle} path="/assistente" />
+        <NavDivider w={navSize === 'large' ? '30px' : '220px'} transitionDuration="0.42s" ml={4} />
         <SidebarItem name="Pedidos" nav={navSize} icon={HiOutlineDocumentReport} path="/listar/pedido" />
         <NavDivider w={navSize === 'large' ? '30px' : '220px'} transitionDuration="0.42s" ml={4} />
         <SidebarItem name="Orçamentos" nav={navSize} icon={HiOutlineDocumentText} path="/listar/orcamento" />

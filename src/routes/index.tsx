@@ -52,7 +52,8 @@ import AgendamentoDetail from '../pages/AgendamentoDetail';
 import RastreamentoEntrega from '../pages/RastreamentoEntrega';
 import Apontamento from '../pages/Apontamento';
 import Entregas from '../pages/Entregas';
-import { ChatAssistant } from '../components/ChatAssistant';
+import { ChatAssistant, ROTA_ASSISTENTE } from '../components/ChatAssistant';
+import { Assistente } from '../pages/Assistente';
 
 export const Routes = () => {
   return (
@@ -139,6 +140,9 @@ export const Routes = () => {
         <Route exact path="/cadastro/meta/:id" component={CreateMeta} isPrivate />
 
         <Route exact path="/painel/metas" component={PainelMetas} isPrivate />
+
+        {/* O Assistente ESF em tela cheia; a conversa é a mesma do balão. */}
+        <Route exact path={ROTA_ASSISTENTE} component={Assistente} isPrivate />
 
         <Route
           exact

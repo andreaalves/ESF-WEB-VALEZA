@@ -5,14 +5,14 @@ import {
   Input as InputBase,
   IconButton as IconButtonBase,
   VStack as VStackBase,
-  keyframes,
 } from '@chakra-ui/react';
-import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import * as FiIcons from 'react-icons/fi';
+import { useHistory, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../service/api';
+import { SUGESTOES, useAssistente } from '../../context/AssistenteContext';
 import logoArvore from '../../assets/logo-arvore.png';
+import { Bolha, Digitando, ORANGE } from './partes';
 
 // Cast Chakra components to bypass TS2590 ("union type too complex").
 const Box = BoxBase as React.ComponentType<any>;
@@ -22,162 +22,37 @@ const Input = InputBase as React.ComponentType<any>;
 const IconButton = IconButtonBase as React.ComponentType<any>;
 const VStack = VStackBase as React.ComponentType<any>;
 
-const ORANGE = '#fe8026';
-
-// Cada ponto do "digitando" sobe e acende, um depois do outro.
-const pulo = keyframes`
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-4px); opacity: 1; }
-`;
-
-// Endereço do assistente (o MCP da Valeza, repositório ESF-AGENTE-VLZ).
-// Em `npm start`, fala com o MCP rodando na máquina
-// (`python -m valeza_mcp.web`); no build publicado, com o MCP no servidor.
-// REACT_APP_ASSISTENTE_URL troca o destino nos dois casos.
-const ASSISTENTE_URL =
-  process.env.REACT_APP_ASSISTENTE_URL ||
-  (process.env.NODE_ENV === 'development'
-    ? 'http://127.0.0.1:8010/api/assistente/chat'
-    : 'https://valeza-mcp-valeza-agt-mcp.rxlirp.easypanel.host/api/assistente/chat');
-
-interface Mensagem {
-  autor: 'ia' | 'usuario';
-  texto: string;
-}
-
-// A resposta aparece como se alguém digitasse: palavra por palavra, cada uma
-// no tempo de digitá-la, com um ritmo um pouco irregular e pausas depois de
-// vírgula, de ponto e na quebra de linha. Resposta longa acelera por igual
-// para terminar em até 4 s, para o usuário não achar que travou.
-const MS_POR_LETRA = 28;
-const VARIACAO_MS = 40;
-const PAUSA_VIRGULA_MS = 90;
-const PAUSA_FRASE_MS = 220;
-const PAUSA_LINHA_MS = 300;
-const DURACAO_MAX_ESCRITA_MS = 4000;
-
-// Divide a resposta em palavras (cada uma com o espaço que vem depois) e diz,
-// para cada uma, até onde mostrar o texto e quanto esperar antes da próxima.
-// Cortar só entre palavras também evita partir um emoji ao meio.
-function planoDeEscrita(texto: string): { ate: number; espera: number }[] {
-  const palavras = texto.match(/\S+\s*|\s+/g) ?? [texto];
-  let ate = 0;
-  const plano = palavras.map((palavra) => {
-    ate += palavra.length;
-    const semEspaco = palavra.trimEnd();
-    let espera = semEspaco.length * MS_POR_LETRA + Math.random() * VARIACAO_MS;
-    if (/[.!?…]$/.test(semEspaco)) espera += PAUSA_FRASE_MS;
-    else if (/[,;:]$/.test(semEspaco)) espera += PAUSA_VIRGULA_MS;
-    if (palavra.includes('\n')) espera += PAUSA_LINHA_MS;
-    return { ate, espera };
-  });
-  const total = plano.reduce((soma, passo) => soma + passo.espera, 0);
-  const fator = total > DURACAO_MAX_ESCRITA_MS ? DURACAO_MAX_ESCRITA_MS / total : 1;
-  return plano.map((passo) => ({ ate: passo.ate, espera: passo.espera * fator }));
-}
-
-// Sugestões de "acesso rápido" exibidas quando a conversa está vazia.
-const SUGESTOES = [
-  'Como estão minhas metas este mês?',
-  'Resumo dos pedidos a faturar',
-  'Quais vendedores estão abaixo da meta?',
-];
+// Rota da página do assistente: nela o balão não aparece.
+export const ROTA_ASSISTENTE = '/assistente';
 
 export function ChatAssistant() {
   const { user } = useAuth();
+  const { mensagens, carregando, escrevendo, enviar } = useAssistente();
+  const { pathname } = useLocation();
+  const history = useHistory();
   const [aberto, setAberto] = useState(false);
-  const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [texto, setTexto] = useState('');
-  const [carregando, setCarregando] = useState(false);
-  // A resposta já chegou e está aparecendo aos poucos no balão.
-  const [escrevendo, setEscrevendo] = useState(false);
-  const timerEscrita = useRef<number>();
-  const fimRef = useRef<HTMLDivElement>(null);
+  const corpoRef = useRef<HTMLDivElement>(null);
 
   // Mantém o scroll no fim sempre que chega mensagem nova.
   useEffect(() => {
-    fimRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [mensagens, carregando]);
+    corpoRef.current?.scrollTo({
+      top: corpoRef.current.scrollHeight,
+      behavior: 'smooth',
+    });
+  }, [mensagens, carregando, aberto]);
 
-  // Para a escrita se o balão sair da tela (ex.: logout no meio da resposta).
-  useEffect(() => () => window.clearTimeout(timerEscrita.current), []);
-
-  // Mostra a resposta aos poucos no balão, seguindo o planoDeEscrita.
-  function escreverResposta(textoCompleto: string) {
-    const plano = planoDeEscrita(textoCompleto);
-    let passo = 0;
-
-    setMensagens((m) => [...m, { autor: 'ia', texto: '' }]);
-    setEscrevendo(true);
-
-    const escreverProxima = () => {
-      const { ate, espera } = plano[passo];
-      const parcial = textoCompleto.slice(0, ate);
-      setMensagens((m) => [...m.slice(0, -1), { autor: 'ia', texto: parcial }]);
-      passo += 1;
-      if (passo < plano.length) {
-        timerEscrita.current = window.setTimeout(escreverProxima, espera);
-      } else {
-        setEscrevendo(false);
-      }
-    };
-    timerEscrita.current = window.setTimeout(escreverProxima, 0);
-  }
-
-  async function enviar(pergunta: string) {
-    const texto_limpo = pergunta.trim();
-    // Enquanto a resposta anterior é escrita, não envia: o histórico iria com
-    // a resposta pela metade.
-    if (!texto_limpo || carregando || escrevendo) return;
-
-    setMensagens((m) => [...m, { autor: 'usuario', texto: texto_limpo }]);
+  function enviarTexto(pergunta: string) {
+    if (!pergunta.trim() || carregando || escrevendo) return;
+    enviar(pergunta);
     setTexto('');
-    setCarregando(true);
-
-    try {
-      // CONTRATO BACKEND (Murilo): POST /api-essencial/v1/assistente/chat
-      // body: { empresa_id, usuario_id, mensagem, historico }
-      // retorno: { resposta: string }
-      const corpo = {
-        empresa_id: user?.empresa?.id,
-        usuario_id: user?.id,
-        mensagem: texto_limpo,
-        historico: mensagens,
-      };
-      // O MCP só responde a quem está logado: vai junto o mesmo login
-      // (Bearer) que o `api` usa com o ESF, e o MCP o confere com o ESF.
-      const response = ASSISTENTE_URL
-        ? await axios.post(ASSISTENTE_URL, corpo, {
-            headers: { Authorization: api.defaults.headers.authorization },
-            timeout: 120000,
-          })
-        : await api.post('/api-essencial/v1/assistente/chat', corpo);
-
-      const resposta = response?.data?.resposta;
-      escreverResposta(
-        resposta || 'Não consegui entender. Pode reformular a pergunta?'
-      );
-    } catch (error: any) {
-      // 401: login expirado. 429: limite de perguntas por minuto do MCP.
-      // Outros (MCP fora do ar ou ainda não publicado): aviso de integração.
-      const status = error?.response?.status;
-      const texto =
-        status === 401
-          ? 'Sua sessão expirou. Saia e entre de novo para continuar.'
-          : status === 429
-            ? 'Muitas perguntas em pouco tempo. Aguarde um minuto e tente de novo.'
-            : 'O assistente ainda está sendo integrado. Em breve vou responder ' +
-              'com os dados de metas, pedidos e desempenho da sua equipe.';
-      setMensagens((m) => [...m, { autor: 'ia', texto }]);
-    } finally {
-      setCarregando(false);
-    }
   }
 
   const primeiroNome = (user?.name || '').split(' ')[0] || '';
 
-  // Só aparece para usuário logado (esconde no login).
-  if (!user?.id) return null;
+  // Só aparece para usuário logado (esconde no login) e fora da página do
+  // assistente, que já é o chat.
+  if (!user?.id || pathname === ROTA_ASSISTENTE) return null;
 
   return (
     <>
@@ -236,6 +111,19 @@ export function ChatAssistant() {
               </Text>
             </Box>
             <IconButton
+              aria-label="Abrir em tela cheia"
+              title="Abrir em tela cheia"
+              size="sm"
+              variant="ghost"
+              color="white"
+              _hover={{ bg: 'whiteAlpha.300' }}
+              icon={<FiIcons.FiMaximize2 size={18} />}
+              onClick={() => {
+                setAberto(false);
+                history.push(ROTA_ASSISTENTE);
+              }}
+            />
+            <IconButton
               aria-label="Fechar"
               size="sm"
               variant="ghost"
@@ -253,6 +141,7 @@ export function ChatAssistant() {
             spacing="3"
             p="4"
             overflowY="auto"
+            ref={corpoRef}
             css={{
               '&::-webkit-scrollbar': { width: '6px' },
               '&::-webkit-scrollbar-thumb': {
@@ -284,7 +173,7 @@ export function ChatAssistant() {
                       color="gray.50"
                       fontSize="sm"
                       _hover={{ bg: 'gray.600' }}
-                      onClick={() => enviar(s)}
+                      onClick={() => enviarTexto(s)}
                     >
                       {s}
                     </Box>
@@ -294,60 +183,10 @@ export function ChatAssistant() {
             )}
 
             {mensagens.map((m, i) => (
-              <Flex
-                key={i}
-                justify={m.autor === 'usuario' ? 'flex-end' : 'flex-start'}
-              >
-                <Box
-                  // A resposta ocupa a largura toda: listas longas não quebram cedo.
-                  maxWidth={m.autor === 'usuario' ? '80%' : '100%'}
-                  px="3"
-                  py="2"
-                  borderRadius="12px"
-                  fontSize="sm"
-                  whiteSpace="pre-wrap"
-                  bg={m.autor === 'usuario' ? ORANGE : 'gray.700'}
-                  color={m.autor === 'usuario' ? 'white' : 'gray.50'}
-                  borderBottomRightRadius={
-                    m.autor === 'usuario' ? '2px' : '12px'
-                  }
-                  borderBottomLeftRadius={m.autor === 'ia' ? '2px' : '12px'}
-                >
-                  {m.texto}
-                </Box>
-              </Flex>
+              <Bolha key={i} mensagem={m} />
             ))}
 
-            {/* "Digitando", como no WhatsApp: três pontos pulando enquanto a resposta não chega. */}
-            {carregando && (
-              <Flex justify="flex-start">
-                <Flex
-                  role="status"
-                  aria-label="Assistente digitando"
-                  align="center"
-                  sx={{ gap: '4px' }}
-                  px="14px"
-                  py="12px"
-                  borderRadius="12px"
-                  borderBottomLeftRadius="2px"
-                  bg="gray.700"
-                >
-                  {[0, 0.2, 0.4].map((atraso) => (
-                    <Box
-                      key={atraso}
-                      width="7px"
-                      height="7px"
-                      borderRadius="50%"
-                      bg="gray.50"
-                      opacity={0.4}
-                      animation={`${pulo} 1.2s ${atraso}s infinite ease-in-out`}
-                    />
-                  ))}
-                </Flex>
-              </Flex>
-            )}
-
-            <Box ref={fimRef} />
+            {carregando && <Digitando />}
           </VStack>
 
           {/* Campo de envio */}
@@ -365,7 +204,7 @@ export function ChatAssistant() {
               value={texto}
               onChange={(e: any) => setTexto(e.target.value)}
               onKeyDown={(e: any) => {
-                if (e.key === 'Enter') enviar(texto);
+                if (e.key === 'Enter') enviarTexto(texto);
               }}
             />
             <IconButton
@@ -378,7 +217,7 @@ export function ChatAssistant() {
               _hover={{ bg: '#d9641a' }}
               isDisabled={!texto.trim() || carregando || escrevendo}
               icon={<FiIcons.FiSend size={16} />}
-              onClick={() => enviar(texto)}
+              onClick={() => enviarTexto(texto)}
             />
           </Flex>
         </Flex>
