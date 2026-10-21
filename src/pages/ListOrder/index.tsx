@@ -21,6 +21,7 @@ import { Header } from '../../components/Header';
 import ReactTableComponent from '../../components/TableComponent';
 import api from '../../service/api';
 import { getColumn } from '../../utils/getOrderColumn';
+import { entradaDoPedido } from '../../helpers/entradaPedido';
 import { useHistory } from 'react-router-dom';
 import { SiderbarResponsive } from '../../components/SiderbarResponsive';
 import { Wapper } from '../../components/Wapper';
@@ -199,14 +200,17 @@ export default function ListOrder() {
     //   return;
     // }
 
-    const orderFilter = orders.filter(
-      (o) =>
-        DateTime.fromISO(o.data_emissao).plus({ hours: 3 }) >=
-          DateTime.fromISO(initialDate).startOf('day') &&
-        DateTime.fromISO(o.data_emissao).plus({ hours: 3 }) <=
-          DateTime.fromISO(finalDate).endOf('day')
+    // O dia é o da entrada do pedido no horário local (entradaDoPedido): o
+    // pedido do app feito depois das 21h não cai no dia seguinte.
+    const orderFilter = orders.filter((o) => {
+      const entrada = entradaDoPedido(o.data_emissao, o.hora_emissao)?.momento;
+      return (
+        !!entrada &&
+        entrada >= DateTime.fromISO(initialDate).startOf('day') &&
+        entrada <= DateTime.fromISO(finalDate).endOf('day')
+      );
       // || o.margemPedido <= params[0].percentualAprovacaoPedido
-    );
+    });
     setOrderFilter(orderFilter);
 
     if (orderFilter.length >= 1) {

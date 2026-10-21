@@ -5,7 +5,7 @@ import {
   HStack as HStackBase,
   Link as ChakraLinkBase,
 } from '@chakra-ui/react';
-import { DateTime } from 'luxon';
+import { entradaDoPedido } from '../helpers/entradaPedido';
 
 // Cast Chakra components to bypass TS2590 ("union type too complex").
 const IconButton = IconButtonBase as React.ComponentType<any>;
@@ -45,17 +45,23 @@ export function getColumn(
     {
       Header: 'Data de emissão',
       id: 'dataEmissao',
-      // Accessor retorna o timestamp para o react-table ordenar
+      // Accessor retorna o momento de entrada para o react-table ordenar
       // cronologicamente (menor = mais antigo, maior = mais recente).
-      accessor: (row: any) => {
-        const dt = DateTime.fromISO(row.data_emissao);
-        return dt.isValid ? dt.toMillis() : 0;
-      },
+      accessor: (row: any) =>
+        entradaDoPedido(row.data_emissao, row.hora_emissao)?.momento.toMillis() ?? 0,
       sortType: 'basic',
-      Cell: ({ row }: any) =>
-        DateTime.fromISO(row.original.data_emissao)
-          .plus({ hours: 3 })
-          .toFormat('dd/MM/yyyy'),
+      // Dia e hora em que o pedido entrou no Essencial, no horário local.
+      // Pedido antigo do Protheus, sem hora gravada, mostra só o dia.
+      Cell: ({ row }: any) => {
+        const entrada = entradaDoPedido(
+          row.original.data_emissao,
+          row.original.hora_emissao
+        );
+        if (!entrada) return '-';
+        return entrada.temHora
+          ? entrada.momento.toFormat("dd/MM/yyyy 'às' HH:mm")
+          : entrada.momento.toFormat('dd/MM/yyyy');
+      },
     },
     {
       Header: 'Margem Pedido',
