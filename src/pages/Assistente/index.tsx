@@ -54,7 +54,7 @@ export function Assistente() {
 
   function enviarTexto(pergunta: string) {
     if (!pergunta.trim() || ocupado) return;
-    enviar(pergunta);
+    enviar(pergunta, 'pagina');
     setTexto('');
     campoRef.current?.focus();
   }

@@ -44,7 +44,7 @@ export function ChatAssistant() {
 
   function enviarTexto(pergunta: string) {
     if (!pergunta.trim() || carregando || escrevendo) return;
-    enviar(pergunta);
+    enviar(pergunta, 'balao_markdown');
     setTexto('');
   }
 

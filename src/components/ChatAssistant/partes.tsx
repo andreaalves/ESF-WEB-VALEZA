@@ -4,6 +4,7 @@ import {
   keyframes,
 } from '@chakra-ui/react';
 import { Mensagem } from '../../context/AssistenteContext';
+import { Markdown } from './Markdown';
 
 // Peças comuns ao balão flutuante e à página /assistente.
 
@@ -36,13 +37,14 @@ export function Bolha({ mensagem, larga }: BolhaProps) {
         py={larga ? '3' : '2'}
         borderRadius="12px"
         fontSize={larga ? 'md' : 'sm'}
-        whiteSpace="pre-wrap"
+        // A pergunta é texto puro; a resposta vem em Markdown.
+        whiteSpace={doUsuario ? 'pre-wrap' : 'normal'}
         bg={doUsuario ? ORANGE : 'gray.700'}
         color={doUsuario ? 'white' : 'gray.50'}
         borderBottomRightRadius={doUsuario ? '2px' : '12px'}
         borderBottomLeftRadius={doUsuario ? '12px' : '2px'}
       >
-        {mensagem.texto}
+        {doUsuario ? mensagem.texto : <Markdown texto={mensagem.texto} />}
       </Box>
     </Flex>
   );

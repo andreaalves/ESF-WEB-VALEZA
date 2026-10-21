@@ -24,6 +24,10 @@ const ASSISTENTE_URL =
     ? 'http://127.0.0.1:8010/api/assistente/chat'
     : 'https://valeza-mcp-valeza-agt-mcp.rxlirp.easypanel.host/api/assistente/chat');
 
+// Como cada tela pede a resposta ao MCP: as duas desenham Markdown; o balão,
+// estreito, pede uma resposta curta e sem tabela.
+export type FormatoResposta = 'balao_markdown' | 'pagina';
+
 export interface Mensagem {
   autor: 'ia' | 'usuario';
   texto: string;
@@ -73,7 +77,7 @@ interface AssistenteContextData {
   carregando: boolean;
   // A resposta já chegou e está aparecendo aos poucos.
   escrevendo: boolean;
-  enviar: (pergunta: string) => void;
+  enviar: (pergunta: string, formato: FormatoResposta) => void;
   novaConversa: () => void;
 }
 
@@ -131,7 +135,7 @@ export function AssistenteProvider({ children }: AssistenteProviderProps) {
     timerEscrita.current = window.setTimeout(escreverProxima, 0);
   }
 
-  async function enviar(pergunta: string) {
+  async function enviar(pergunta: string, formato: FormatoResposta) {
     const texto_limpo = pergunta.trim();
     // Enquanto a resposta anterior é escrita, não envia: o histórico iria com
     // a resposta pela metade.
@@ -143,13 +147,14 @@ export function AssistenteProvider({ children }: AssistenteProviderProps) {
 
     try {
       // CONTRATO BACKEND (Murilo): POST /api-essencial/v1/assistente/chat
-      // body: { empresa_id, usuario_id, mensagem, historico }
+      // body: { empresa_id, usuario_id, mensagem, historico, formato }
       // retorno: { resposta: string }
       const corpo = {
         empresa_id: user?.empresa?.id,
         usuario_id: user?.id,
         mensagem: texto_limpo,
         historico: mensagens,
+        formato,
       };
       // O MCP só responde a quem está logado: vai junto o mesmo login
       // (Bearer) que o `api` usa com o ESF, e o MCP o confere com o ESF.
