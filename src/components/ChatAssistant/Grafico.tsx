@@ -1,5 +1,6 @@
 import { Box as BoxBase, Flex as FlexBase } from '@chakra-ui/react';
 import { Grafico as DadosGrafico } from '../../context/AssistenteContext';
+import { useThemeMode } from '../../context/ThemeModeContext';
 
 // Cast Chakra components to bypass TS2590 ("union type too complex").
 const Box = BoxBase as React.ComponentType<any>;
@@ -10,13 +11,18 @@ const Flex = FlexBase as React.ComponentType<any>;
 // (cabem no balão estreito), linha e pizza em SVG. Sem biblioteca: o gráfico
 // é pequeno e precisa caber tanto no balão quanto na página.
 //
-// As 8 cores categóricas, validadas para daltonismo sobre fundo escuro (o
-// balão é gray.700). A cor segue a série, sempre na mesma ordem.
-const CORES = [
+// As 8 cores categóricas, validadas para daltonismo sobre o fundo do balão
+// (gray.700) em cada tema: os mesmos 8 tons, um passo para o claro e outro
+// para o escuro. A cor segue a série, sempre na mesma ordem.
+const CORES_ESCURO = [
   '#3987e5', '#d95926', '#199e70', '#c98500',
   '#d55181', '#008300', '#9085e9', '#e66767',
 ];
-const cor = (i: number) => CORES[i % CORES.length];
+const CORES_CLARO = [
+  '#2a78d6', '#eb6834', '#1baf7a', '#eda100',
+  '#e87ba4', '#008300', '#6250d6', '#e34948',
+];
+type Cor = (i: number) => string;
 const TINTA_FRACA = 'var(--chakra-colors-gray-300)';
 const LINHA_GRADE = 'var(--chakra-colors-gray-600)';
 
@@ -30,11 +36,11 @@ function formatar(unidade: DadosGrafico['unidade'], v: number): string {
   return v.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
 }
 
-function Marca({ i }: { i: number }) {
-  return <Box as="i" w="10px" h="10px" borderRadius="3px" flexShrink={0} bg={cor(i)} />;
+function Marca({ cor }: { cor: string }) {
+  return <Box as="i" w="10px" h="10px" borderRadius="3px" flexShrink={0} bg={cor} />;
 }
 
-function Barras({ g }: { g: DadosGrafico }) {
+function Barras({ g, cor }: { g: DadosGrafico; cor: Cor }) {
   const max = Math.max(...g.series.flatMap((s) => s.valores.map(Math.abs))) || 1;
   return (
     <>
@@ -63,7 +69,7 @@ function Barras({ g }: { g: DadosGrafico }) {
   );
 }
 
-function Linha({ g }: { g: DadosGrafico }) {
+function Linha({ g, cor }: { g: DadosGrafico; cor: Cor }) {
   const W = 320, H = 150, T = 14, B = 18;
   const n = g.rotulos.length;
   const todos = g.series.flatMap((s) => s.valores);
@@ -128,7 +134,7 @@ function Linha({ g }: { g: DadosGrafico }) {
   );
 }
 
-function Pizza({ g }: { g: DadosGrafico }) {
+function Pizza({ g, cor }: { g: DadosGrafico; cor: Cor }) {
   // Rosca: cada fatia é um traço do círculo de perímetro 100, a partir do meio-dia.
   const valores = g.series[0].valores;
   const total = valores.reduce((a, b) => a + b, 0) || 1;
@@ -163,7 +169,7 @@ function Pizza({ g }: { g: DadosGrafico }) {
       <Box as="ul" listStyleType="none" m={0} p={0} flex="1" minW="160px">
         {valores.map((v, i) => (
           <Flex as="li" key={i} align="center" sx={{ gap: '8px' }} my="4px">
-            <Marca i={i} />
+            <Marca cor={cor(i)} />
             {g.rotulos[i]}
             <Box ml="auto" color={TINTA_FRACA} whiteSpace="nowrap">
               {formatar(g.unidade, v)} · {pct(v)}%
@@ -176,6 +182,9 @@ function Pizza({ g }: { g: DadosGrafico }) {
 }
 
 export function Grafico({ g }: { g: DadosGrafico }) {
+  const { ehClaro } = useThemeMode();
+  const cores = ehClaro ? CORES_CLARO : CORES_ESCURO;
+  const cor = (i: number) => cores[i % cores.length];
   return (
     <Box
       mt="10px"
@@ -194,13 +203,19 @@ export function Grafico({ g }: { g: DadosGrafico }) {
         <Flex wrap="wrap" sx={{ gap: '4px 14px' }} mb="8px" color={TINTA_FRACA}>
           {g.series.map((s, i) => (
             <Flex key={i} align="center" sx={{ gap: '6px' }}>
-              <Marca i={i} />
+              <Marca cor={cor(i)} />
               {s.nome}
             </Flex>
           ))}
         </Flex>
       )}
-      {g.tipo === 'pizza' ? <Pizza g={g} /> : g.tipo === 'linha' ? <Linha g={g} /> : <Barras g={g} />}
+      {g.tipo === 'pizza' ? (
+        <Pizza g={g} cor={cor} />
+      ) : g.tipo === 'linha' ? (
+        <Linha g={g} cor={cor} />
+      ) : (
+        <Barras g={g} cor={cor} />
+      )}
     </Box>
   );
 }
