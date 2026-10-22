@@ -4,6 +4,7 @@ import {
   keyframes,
 } from '@chakra-ui/react';
 import { Mensagem } from '../../context/AssistenteContext';
+import { Grafico } from './Grafico';
 import { Markdown } from './Markdown';
 
 // Peças comuns ao balão flutuante e à página /assistente.
@@ -45,6 +46,7 @@ export function Bolha({ mensagem, larga }: BolhaProps) {
         borderBottomLeftRadius={doUsuario ? '12px' : '2px'}
       >
         {doUsuario ? mensagem.texto : <Markdown texto={mensagem.texto} />}
+        {mensagem.graficos?.map((g, i) => <Grafico key={i} g={g} />)}
       </Box>
     </Flex>
   );

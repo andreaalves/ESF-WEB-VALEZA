@@ -28,9 +28,20 @@ const ASSISTENTE_URL =
 // estreito, pede uma resposta curta e sem tabela.
 export type FormatoResposta = 'balao_markdown' | 'pagina';
 
+// Um gráfico da resposta, como o MCP manda (valeza_mcp/grafico.py). A tela
+// desenha abaixo do texto; os números vêm das consultas, não da LLM.
+export interface Grafico {
+  tipo: 'barras' | 'linha' | 'pizza';
+  titulo: string;
+  unidade: 'reais' | 'percentual' | 'quantidade';
+  rotulos: string[];
+  series: { nome: string; valores: number[] }[];
+}
+
 export interface Mensagem {
   autor: 'ia' | 'usuario';
   texto: string;
+  graficos?: Grafico[];
 }
 
 // Sugestões de "acesso rápido" exibidas quando a conversa está vazia.
@@ -113,8 +124,9 @@ export function AssistenteProvider({ children }: AssistenteProviderProps) {
   // Para a escrita se o provedor sair da tela.
   useEffect(() => () => window.clearTimeout(timerEscrita.current), []);
 
-  // Mostra a resposta aos poucos, seguindo o planoDeEscrita.
-  function escreverResposta(textoCompleto: string) {
+  // Mostra a resposta aos poucos, seguindo o planoDeEscrita. Os gráficos
+  // aparecem quando o texto termina.
+  function escreverResposta(textoCompleto: string, graficos: Grafico[] = []) {
     const plano = planoDeEscrita(textoCompleto);
     let passo = 0;
 
@@ -129,6 +141,12 @@ export function AssistenteProvider({ children }: AssistenteProviderProps) {
       if (passo < plano.length) {
         timerEscrita.current = window.setTimeout(escreverProxima, espera);
       } else {
+        if (graficos.length) {
+          setMensagens((m) => [
+            ...m.slice(0, -1),
+            { autor: 'ia', texto: textoCompleto, graficos },
+          ]);
+        }
         setEscrevendo(false);
       }
     };
@@ -147,14 +165,16 @@ export function AssistenteProvider({ children }: AssistenteProviderProps) {
 
     try {
       // CONTRATO BACKEND (Murilo): POST /api-essencial/v1/assistente/chat
-      // body: { empresa_id, usuario_id, mensagem, historico, formato }
-      // retorno: { resposta: string }
+      // body: { empresa_id, usuario_id, mensagem, historico, formato, graficos }
+      // retorno: { resposta: string, graficos?: Grafico[] }
+      // O histórico vai só com o texto: para redesenhar, o MCP consulta de novo.
       const corpo = {
         empresa_id: user?.empresa?.id,
         usuario_id: user?.id,
         mensagem: texto_limpo,
-        historico: mensagens,
+        historico: mensagens.map(({ autor, texto }) => ({ autor, texto })),
         formato,
+        graficos: true,
       };
       // O MCP só responde a quem está logado: vai junto o mesmo login
       // (Bearer) que o `api` usa com o ESF, e o MCP o confere com o ESF.
@@ -167,8 +187,10 @@ export function AssistenteProvider({ children }: AssistenteProviderProps) {
 
       if (minhaConversa !== conversa.current) return;
       const resposta = response?.data?.resposta;
+      const graficos = response?.data?.graficos;
       escreverResposta(
-        resposta || 'Não consegui entender. Pode reformular a pergunta?'
+        resposta || 'Não consegui entender. Pode reformular a pergunta?',
+        Array.isArray(graficos) ? graficos : []
       );
     } catch (error: any) {
       if (minhaConversa !== conversa.current) return;
