@@ -41,9 +41,26 @@ import {
   opcoesDeSituacao,
   rotuloSituacao,
 } from '../../utils/situacaoPedido';
+import { useFiltroDaSessao } from '../../hooks/useFiltroDaSessao';
 
 // Cast para evitar o TS2590 ("union type too complex") do Chakra.
 const Select = SelectBase as React.ComponentType<any>;
+
+interface IPeriodo {
+  inicio: string;
+  fim: string;
+}
+
+// O dia é o da entrada do pedido no horário local (entradaDoPedido): o
+// pedido do app feito depois das 21h não cai no dia seguinte.
+function pedidoNoPeriodo(o: any, { inicio, fim }: IPeriodo) {
+  const entrada = entradaDoPedido(o.data_emissao, o.hora_emissao)?.momento;
+  return (
+    !!entrada &&
+    entrada >= DateTime.fromISO(inicio).startOf('day') &&
+    entrada <= DateTime.fromISO(fim).endOf('day')
+  );
+}
 
 export default function ListOrder() {
   const {
@@ -59,18 +76,28 @@ export default function ListOrder() {
   const [orders, setOrders] = useState<any[]>([]);
   const [showIndex, setShowIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(true);
-  const [initialDate, setInitialDate] = useState('');
-  const [finalDate, setFinalDate] = useState('');
-  const [orderFilter, setOrderFilter] = useState<any[]>([]);
-  const [showFilter, setShowFilter] = useState(-1);
+  const { user } = useAuth();
+  // O link do pedido recarrega a página: sem guardar na sessão, quem abria um
+  // pedido e voltava perdia o período, a situação e os filtros da tabela.
+  const chaveFiltro = (nome: string) =>
+    `@Aplication:pedidos:filtro:${user?.id ?? ''}:${nome}`;
+  // Período da última pesquisa; null = sem filtro de data.
+  const [periodo, setPeriodo] = useFiltroDaSessao<IPeriodo | null>(
+    chaveFiltro('periodo'),
+    null
+  );
+  const [initialDate, setInitialDate] = useState(periodo?.inicio ?? '');
+  const [finalDate, setFinalDate] = useState(periodo?.fim ?? '');
   const [params, setParams] = useState<any[]>([]);
   const [reload, setReload] = useState(0);
-  const [situacaoFiltro, setSituacaoFiltro] = useState('');
+  const [situacaoFiltro, setSituacaoFiltro] = useFiltroDaSessao(
+    chaveFiltro('situacao'),
+    ''
+  );
   const [integrando, setIntegrando] = useState(false);
   const recargasAposIntegrar = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const history = useHistory();
-  const { user } = useAuth();
 
   const toast = useToast();
 
@@ -162,8 +189,7 @@ export default function ListOrder() {
   function handleReset() {
     setInitialDate('');
     setFinalDate('');
-    setOrderFilter([]);
-    setShowFilter(-1);
+    setPeriodo(null);
     setSituacaoFiltro('');
   }
 
@@ -200,23 +226,9 @@ export default function ListOrder() {
     //   return;
     // }
 
-    // O dia é o da entrada do pedido no horário local (entradaDoPedido): o
-    // pedido do app feito depois das 21h não cai no dia seguinte.
-    const orderFilter = orders.filter((o) => {
-      const entrada = entradaDoPedido(o.data_emissao, o.hora_emissao)?.momento;
-      return (
-        !!entrada &&
-        entrada >= DateTime.fromISO(initialDate).startOf('day') &&
-        entrada <= DateTime.fromISO(finalDate).endOf('day')
-      );
-      // || o.margemPedido <= params[0].percentualAprovacaoPedido
-    });
-    setOrderFilter(orderFilter);
-
-    if (orderFilter.length >= 1) {
-      setShowFilter(-1);
-      return;
-    }
+    // A lista do período sai de pedidoNoPeriodo, recalculada a cada recarga
+    // (antes era uma cópia tirada na hora da pesquisa e ficava desatualizada).
+    setPeriodo({ inicio: initialDate, fim: finalDate });
 
     // if (orderFilter.length === 0) {
     //   return toast({
@@ -227,8 +239,6 @@ export default function ListOrder() {
     //     isClosable: true,
     //   });
     // }
-
-    setShowFilter(0);
   }
 
   async function handleApprove(id: string) {
@@ -286,9 +296,9 @@ export default function ListOrder() {
     }
   }
 
-  // showFilter === 0 é a pesquisa por data que não achou nada.
-  const pedidosDoPeriodo =
-    showFilter === 0 ? [] : orderFilter.length === 0 ? orders : orderFilter;
+  const pedidosDoPeriodo = periodo
+    ? orders.filter((o) => pedidoNoPeriodo(o, periodo))
+    : orders;
   // Dá para isolar na lista os pedidos de uma situação só (em análise para
   // aprovar, erro de integração para corrigir e reenviar, etc.).
   const situacoes = opcoesDeSituacao(pedidosDoPeriodo, situacaoFiltro);
@@ -446,6 +456,7 @@ export default function ListOrder() {
                         columns={column}
                         data={pedidosExibidos}
                         isPagenable
+                        storageKey={chaveFiltro('tabela')}
                       />
 
                       <OrderInfoModal

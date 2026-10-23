@@ -7,10 +7,8 @@ import {
   FiChevronLeft,
 } from 'react-icons/fi';
 import { Filter, DefaultColumnFilter } from './Filters';
-import {
-  // useEffect,
-  useState,
-} from 'react';
+import { useEffect, useState } from 'react';
+import { gravarNaSessao, lerDaSessao } from '../../hooks/useFiltroDaSessao';
 import {
   Flex,
   Table,
@@ -33,6 +31,15 @@ interface ITableContainerProps {
   data: any[];
   isPagenable?: boolean;
   showFilter?: boolean;
+  // Com chave, os filtros por coluna, a ordenação e a página ficam guardados
+  // na sessão: abrir um registro e voltar devolve a tabela como estava.
+  storageKey?: string;
+}
+
+interface IEstadoSalvo {
+  filters: any[];
+  sortBy: any[];
+  pageIndex: number;
 }
 
 const ReactTableComponent = ({
@@ -40,7 +47,13 @@ const ReactTableComponent = ({
   data,
   isPagenable = false,
   showFilter = true,
+  storageKey,
 }: ITableContainerProps) => {
+  // Lido uma vez só, na montagem: depois disso quem manda é o estado da tabela.
+  const [salvo] = useState<IEstadoSalvo | null>(() =>
+    storageKey ? lerDaSessao<IEstadoSalvo | null>(storageKey, null) : null
+  );
+
   const generateSortingIndicator = (column: any) => {
     return (
       <Flex alignItems="center">
@@ -66,26 +79,46 @@ const ReactTableComponent = ({
     canPreviousPage,
     canNextPage,
     pageOptions,
+    pageCount,
 
+    gotoPage,
     nextPage,
     previousPage,
-    state: { pageIndex },
+    state: { pageIndex, filters, sortBy },
   } = useTable(
     {
       columns,
       data,
       defaultColumn: { Filter: DefaultColumnFilter },
-      initialState: { pageIndex: 0, pageSize: 10 },
+      initialState: {
+        pageIndex: salvo?.pageIndex ?? 0,
+        pageSize: 10,
+        filters: salvo?.filters ?? [],
+        sortBy: salvo?.sortBy ?? [],
+      },
       autoResetPage: false,
+      // Sem isso, cada recarga da lista (aprovar, integrar...) apagava o
+      // filtro e a ordenação que o usuário tinha escolhido.
+      autoResetFilters: false,
+      autoResetSortBy: false,
     },
     useFilters,
     useSortBy,
     usePagination
   );
 
-  // useEffect(() => {
-  //   pageIndex;
-  // }, []);
+  useEffect(() => {
+    if (storageKey) gravarNaSessao(storageKey, { filters, sortBy, pageIndex });
+  }, [storageKey, filters, sortBy, pageIndex]);
+
+  // autoResetPage fica desligado para o refresh não devolver o usuário à
+  // página 1. O efeito colateral: se a lista encolhe (filtro, busca) com a
+  // tabela numa página que deixou de existir, ela ficava em branco.
+  useEffect(() => {
+    if (pageIndex > 0 && pageIndex >= pageCount) {
+      gotoPage(Math.max(pageCount - 1, 0));
+    }
+  }, [pageIndex, pageCount, gotoPage]);
 
   const [filterIndexOpen, setFilterIndexOpen] = useState<number | undefined>();
 
