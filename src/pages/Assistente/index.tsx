@@ -10,8 +10,9 @@ import {
   VStack as VStackBase,
 } from '@chakra-ui/react';
 import { useEffect, useRef, useState } from 'react';
-import { FiMessageCircle, FiPlus, FiSend } from 'react-icons/fi';
+import { FiBarChart2, FiMessageCircle, FiPlus, FiSend } from 'react-icons/fi';
 import logoArvore from '../../assets/logo-arvore.png';
+import { PainelInteligencia } from '../../components/ChatAssistant/Painel';
 import { Bolha, Digitando, ORANGE } from '../../components/ChatAssistant/partes';
 import { Header } from '../../components/Header';
 import { SiderbarResponsive } from '../../components/SiderbarResponsive';
@@ -31,12 +32,15 @@ const Textarea = TextareaBase as React.ComponentType<any>;
 const VStack = VStackBase as React.ComponentType<any>;
 
 // O Assistente ESF em tela cheia. A conversa é a mesma do balão flutuante
-// (AssistenteContext): o que foi perguntado num aparece no outro.
+// (AssistenteContext): o que foi perguntado num aparece no outro. A página abre
+// no painel de inteligência comercial; perguntar leva à conversa.
 export function Assistente() {
   const { user } = useAuth();
   const { mensagens, carregando, escrevendo, enviar, novaConversa } =
     useAssistente();
   const [texto, setTexto] = useState('');
+  // Sem conversa, a página abre no painel; com conversa, na conversa.
+  const [verPainel, setVerPainel] = useState(mensagens.length === 0);
   const corpoRef = useRef<HTMLDivElement>(null);
   const campoRef = useRef<HTMLTextAreaElement>(null);
   const ocupado = carregando || escrevendo;
@@ -54,6 +58,7 @@ export function Assistente() {
 
   function enviarTexto(pergunta: string) {
     if (!pergunta.trim() || ocupado) return;
+    setVerPainel(false);
     enviar(pergunta, 'pagina');
     setTexto('');
     campoRef.current?.focus();
@@ -119,6 +124,44 @@ export function Assistente() {
                     : 'Pergunte sobre pedidos, vendas, metas, preços e clientes'}
                 </Text>
               </Box>
+              {/* Painel e conversa são duas abas da mesma página. */}
+              <Flex
+                role="tablist"
+                aria-label="Visão"
+                mr="2"
+                p="3px"
+                bg="gray.700"
+                borderRadius="10px"
+                sx={{ gap: '2px' }}
+              >
+                {[
+                  { painel: true, rotulo: 'Painel', icone: <FiBarChart2 /> },
+                  { painel: false, rotulo: 'Conversa', icone: <FiMessageCircle /> },
+                ].map((aba) => {
+                  const ativa = verPainel === aba.painel;
+                  return (
+                    <Button
+                      key={aba.rotulo}
+                      role="tab"
+                      aria-selected={ativa}
+                      size="sm"
+                      h="30px"
+                      px="3"
+                      borderRadius="7px"
+                      fontSize="13px"
+                      leftIcon={aba.icone}
+                      bg={ativa ? 'gray.800' : 'transparent'}
+                      color={ativa ? 'gray.50' : 'gray.400'}
+                      boxShadow={ativa ? '0 1px 2px rgba(0,0,0,0.12)' : 'none'}
+                      _hover={{ color: 'gray.50' }}
+                      _active={{}}
+                      onClick={() => setVerPainel(aba.painel)}
+                    >
+                      {aba.rotulo}
+                    </Button>
+                  );
+                })}
+              </Flex>
               <Button
                 size="sm"
                 leftIcon={<FiPlus />}
@@ -128,6 +171,7 @@ export function Assistente() {
                 isDisabled={mensagens.length === 0}
                 onClick={() => {
                   novaConversa();
+                  setVerPainel(false);
                   campoRef.current?.focus();
                 }}
               >
@@ -150,55 +194,61 @@ export function Assistente() {
                 },
               }}
             >
-              <VStack align="stretch" spacing="4" maxW="900px" mx="auto">
-                {mensagens.length === 0 && (
-                  <Box textAlign="center" pt={['4', '10']}>
-                    <Flex
-                      mx="auto"
-                      mb="4"
-                      width="56px"
-                      height="56px"
-                      borderRadius="full"
-                      align="center"
-                      justify="center"
-                      bgGradient={`linear(to-br, ${ORANGE}, #d9641a)`}
-                      color="white"
-                    >
-                      <FiMessageCircle size={28} />
-                    </Flex>
-                    <Heading size="md" mb="2">
-                      Oi {primeiroNome || 'gerente'}! 👋
-                    </Heading>
-                    <Text color="gray.400" mb="8">
-                      Como posso te ajudar hoje?
-                    </Text>
-                    <SimpleGrid columns={[1, 1, 3]} spacing="3" textAlign="left">
-                      {SUGESTOES.map((s) => (
-                        <Box
-                          key={s}
-                          as="button"
-                          textAlign="left"
-                          p="4"
-                          borderRadius="12px"
-                          bg="gray.700"
-                          color="gray.50"
-                          fontSize="sm"
-                          _hover={{ bg: 'gray.600' }}
-                          onClick={() => enviarTexto(s)}
-                        >
-                          {s}
-                        </Box>
-                      ))}
-                    </SimpleGrid>
-                  </Box>
-                )}
+              {verPainel ? (
+                <Box maxW="1240px" mx="auto">
+                  <PainelInteligencia onPerguntar={enviarTexto} />
+                </Box>
+              ) : (
+                <VStack align="stretch" spacing="4" maxW="900px" mx="auto">
+                  {mensagens.length === 0 && (
+                    <Box textAlign="center" pt={['4', '10']}>
+                      <Flex
+                        mx="auto"
+                        mb="4"
+                        width="56px"
+                        height="56px"
+                        borderRadius="full"
+                        align="center"
+                        justify="center"
+                        bgGradient={`linear(to-br, ${ORANGE}, #d9641a)`}
+                        color="white"
+                      >
+                        <FiMessageCircle size={28} />
+                      </Flex>
+                      <Heading size="md" mb="2">
+                        Oi {primeiroNome || 'gerente'}! 👋
+                      </Heading>
+                      <Text color="gray.400" mb="8">
+                        Como posso te ajudar hoje?
+                      </Text>
+                      <SimpleGrid columns={[1, 1, 3]} spacing="3" textAlign="left">
+                        {SUGESTOES.map((s) => (
+                          <Box
+                            key={s}
+                            as="button"
+                            textAlign="left"
+                            p="4"
+                            borderRadius="12px"
+                            bg="gray.700"
+                            color="gray.50"
+                            fontSize="sm"
+                            _hover={{ bg: 'gray.600' }}
+                            onClick={() => enviarTexto(s)}
+                          >
+                            {s}
+                          </Box>
+                        ))}
+                      </SimpleGrid>
+                    </Box>
+                  )}
 
-                {mensagens.map((m, i) => (
-                  <Bolha key={i} mensagem={m} larga />
-                ))}
+                  {mensagens.map((m, i) => (
+                    <Bolha key={i} mensagem={m} larga />
+                  ))}
 
-                {carregando && <Digitando />}
-              </VStack>
+                  {carregando && <Digitando />}
+                </VStack>
+              )}
             </Box>
 
             {/* ── Campo de envio ── */}

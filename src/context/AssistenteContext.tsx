@@ -24,14 +24,25 @@ const ASSISTENTE_URL =
     ? 'http://127.0.0.1:8010/api/assistente/chat'
     : 'https://valeza-mcp-valeza-agt-mcp.rxlirp.easypanel.host/api/assistente/chat');
 
+// O painel de inteligência comercial mora no mesmo MCP, ao lado do chat. Sem o
+// MCP direto (o caminho antigo, pelo ESF-API), não há painel.
+export const PAINEL_URL = ASSISTENTE_URL
+  ? ASSISTENTE_URL.replace(/\/chat$/, '/painel')
+  : '';
+
+// Os gráficos que esta tela desenha (Grafico.tsx). O MCP só manda estes: um
+// tipo novo lá não quebra esta versão do web.
+export const TIPOS_DE_GRAFICO = ['barras', 'linha', 'pizza', 'mapa_de_calor'];
+
 // Como cada tela pede a resposta ao MCP: as duas desenham Markdown; o balão,
 // estreito, pede uma resposta curta e sem tabela.
 export type FormatoResposta = 'balao_markdown' | 'pagina';
 
 // Um gráfico da resposta, como o MCP manda (valeza_mcp/grafico.py). A tela
-// desenha abaixo do texto; os números vêm das consultas, não da LLM.
+// desenha abaixo do texto; os números vêm das consultas, não da LLM. No mapa
+// de calor, cada série é uma linha (o dia) e cada rótulo, uma coluna (a hora).
 export interface Grafico {
-  tipo: 'barras' | 'linha' | 'pizza';
+  tipo: 'barras' | 'linha' | 'pizza' | 'mapa_de_calor';
   titulo: string;
   unidade: 'reais' | 'percentual' | 'quantidade';
   rotulos: string[];
@@ -166,6 +177,7 @@ export function AssistenteProvider({ children }: AssistenteProviderProps) {
     try {
       // CONTRATO BACKEND (Murilo): POST /api-essencial/v1/assistente/chat
       // body: { empresa_id, usuario_id, mensagem, historico, formato, graficos }
+      // `graficos`: os tipos que esta tela desenha (`true` = barras, linha e pizza).
       // retorno: { resposta: string, graficos?: Grafico[] }
       // O histórico vai só com o texto: para redesenhar, o MCP consulta de novo.
       const corpo = {
@@ -174,7 +186,7 @@ export function AssistenteProvider({ children }: AssistenteProviderProps) {
         mensagem: texto_limpo,
         historico: mensagens.map(({ autor, texto }) => ({ autor, texto })),
         formato,
-        graficos: true,
+        graficos: TIPOS_DE_GRAFICO,
       };
       // O MCP só responde a quem está logado: vai junto o mesmo login
       // (Bearer) que o `api` usa com o ESF, e o MCP o confere com o ESF.
