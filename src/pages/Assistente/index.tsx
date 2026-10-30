@@ -31,22 +31,16 @@ const Text = TextBase as React.ComponentType<any>;
 const Textarea = TextareaBase as React.ComponentType<any>;
 const VStack = VStackBase as React.ComponentType<any>;
 
-// Painel de inteligência comercial desligado por enquanto: a página mostra só a
-// conversa. Para religar, troque para `true`.
-const PAINEL_LIGADO: boolean = false;
-
 // O Assistente ESF em tela cheia. A conversa é a mesma do balão flutuante
-// (AssistenteContext): o que foi perguntado num aparece no outro. Com o painel
-// ligado, a página abre nele; perguntar leva à conversa.
+// (AssistenteContext): o que foi perguntado num aparece no outro. A página abre
+// no painel de inteligência comercial; perguntar leva à conversa.
 export function Assistente() {
   const { user } = useAuth();
   const { mensagens, carregando, escrevendo, enviar, novaConversa } =
     useAssistente();
   const [texto, setTexto] = useState('');
   // Sem conversa, a página abre no painel; com conversa, na conversa.
-  const [verPainel, setVerPainel] = useState(
-    PAINEL_LIGADO && mensagens.length === 0
-  );
+  const [verPainel, setVerPainel] = useState(mensagens.length === 0);
   const corpoRef = useRef<HTMLDivElement>(null);
   const campoRef = useRef<HTMLTextAreaElement>(null);
   const ocupado = carregando || escrevendo;
@@ -131,45 +125,43 @@ export function Assistente() {
                 </Text>
               </Box>
               {/* Painel e conversa são duas abas da mesma página. */}
-              {PAINEL_LIGADO && (
-                <Flex
-                  role="tablist"
-                  aria-label="Visão"
-                  mr="2"
-                  p="3px"
-                  bg="gray.700"
-                  borderRadius="10px"
-                  sx={{ gap: '2px' }}
-                >
-                  {[
-                    { painel: true, rotulo: 'Painel', icone: <FiBarChart2 /> },
-                    { painel: false, rotulo: 'Conversa', icone: <FiMessageCircle /> },
-                  ].map((aba) => {
-                    const ativa = verPainel === aba.painel;
-                    return (
-                      <Button
-                        key={aba.rotulo}
-                        role="tab"
-                        aria-selected={ativa}
-                        size="sm"
-                        h="30px"
-                        px="3"
-                        borderRadius="7px"
-                        fontSize="13px"
-                        leftIcon={aba.icone}
-                        bg={ativa ? 'gray.800' : 'transparent'}
-                        color={ativa ? 'gray.50' : 'gray.400'}
-                        boxShadow={ativa ? '0 1px 2px rgba(0,0,0,0.12)' : 'none'}
-                        _hover={{ color: 'gray.50' }}
-                        _active={{}}
-                        onClick={() => setVerPainel(aba.painel)}
-                      >
-                        {aba.rotulo}
-                      </Button>
-                    );
-                  })}
-                </Flex>
-              )}
+              <Flex
+                role="tablist"
+                aria-label="Visão"
+                mr="2"
+                p="3px"
+                bg="gray.700"
+                borderRadius="10px"
+                sx={{ gap: '2px' }}
+              >
+                {[
+                  { painel: true, rotulo: 'Painel', icone: <FiBarChart2 /> },
+                  { painel: false, rotulo: 'Conversa', icone: <FiMessageCircle /> },
+                ].map((aba) => {
+                  const ativa = verPainel === aba.painel;
+                  return (
+                    <Button
+                      key={aba.rotulo}
+                      role="tab"
+                      aria-selected={ativa}
+                      size="sm"
+                      h="30px"
+                      px="3"
+                      borderRadius="7px"
+                      fontSize="13px"
+                      leftIcon={aba.icone}
+                      bg={ativa ? 'gray.800' : 'transparent'}
+                      color={ativa ? 'gray.50' : 'gray.400'}
+                      boxShadow={ativa ? '0 1px 2px rgba(0,0,0,0.12)' : 'none'}
+                      _hover={{ color: 'gray.50' }}
+                      _active={{}}
+                      onClick={() => setVerPainel(aba.painel)}
+                    >
+                      {aba.rotulo}
+                    </Button>
+                  );
+                })}
+              </Flex>
               <Button
                 size="sm"
                 leftIcon={<FiPlus />}
