@@ -30,7 +30,7 @@ export const PAINEL_URL = ASSISTENTE_URL
   ? ASSISTENTE_URL.replace(/\/chat$/, '/painel')
   : '';
 
-// Os gráficos que esta tela desenha (Grafico.tsx). O MCP só manda estes: um
+// Os gráficos que esta tela desenha (GraficoInterativo.tsx). O MCP só manda estes: um
 // tipo novo lá não quebra esta versão do web.
 export const TIPOS_DE_GRAFICO = ['barras', 'linha', 'pizza', 'mapa_de_calor'];
 

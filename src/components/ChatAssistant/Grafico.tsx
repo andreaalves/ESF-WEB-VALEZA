@@ -17,16 +17,15 @@ import {
   valorCurto,
   valorExato,
   variacao,
-  variaveisDoTema,
 } from './visual';
 
 // Cast Chakra components to bypass TS2590 ("union type too complex").
 const Box = BoxBase as React.ComponentType<any>;
 const Flex = FlexBase as React.ComponentType<any>;
 
-// Os gráficos do assistente, sem biblioteca: o do balão de resposta (Grafico,
-// abaixo do texto) e as peças que o painel monta nos cartões dele. Tudo é
-// desenhado na largura real, com a letra no tamanho da tela:
+// Os gráficos do painel, sem biblioteca: as peças que ele monta nos cartões
+// dele (o do balão de resposta está em GraficoInterativo.tsx). Tudo é desenhado
+// na largura real, com a letra no tamanho da tela:
 // - linha (evolução no tempo) vira área: curva suave, o período anterior
 //   pontilhado, o maior valor anotado e o dia de hoje como faixa parcial;
 // - barras (comparar itens) vira ranking: nome, valor e participação numa
@@ -1007,43 +1006,4 @@ export function CorpoDoGrafico({ g, compacto }: { g: DadosGrafico; compacto?: bo
       />
     );
   return <Ranking unidade={g.unidade} rotulos={g.rotulos} series={g.series} cores={cores} />;
-}
-
-// O gráfico que vem junto da resposta do assistente, abaixo do texto: no balão
-// flutuante e na conversa da página.
-export function Grafico({ g }: { g: DadosGrafico }) {
-  const { ehClaro } = useThemeMode();
-  const cores = ehClaro ? CORES_CLARO : CORES_ESCURO;
-  const legenda = g.series.length > 1 && g.tipo !== 'pizza' && g.tipo !== 'mapa_de_calor';
-  return (
-    <Box
-      as="figure"
-      role="figure"
-      aria-label={g.titulo}
-      m={0}
-      mt="12px"
-      p="14px"
-      bg="var(--pa-figura)"
-      border="1px solid var(--pa-figura-linha)"
-      borderRadius="12px"
-      color="var(--pa-tinta)"
-      fontSize="13px"
-      lineHeight="18px"
-      // Os pontos e a caixa do pico vazam a cor do fundo: aqui, a do quadro.
-      style={
-        { ...variaveisDoTema(ehClaro), '--pa-superficie': 'var(--pa-figura)' } as React.CSSProperties
-      }
-      sx={{ fontVariantNumeric: 'tabular-nums' }}
-    >
-      <Box fontWeight={600} mb={legenda ? '6px' : '12px'}>
-        {g.titulo}
-      </Box>
-      {legenda && (
-        <Box mb="12px">
-          <Legenda series={g.series} cores={cores} linha={g.tipo === 'linha'} />
-        </Box>
-      )}
-      <CorpoDoGrafico g={g} compacto />
-    </Box>
-  );
 }

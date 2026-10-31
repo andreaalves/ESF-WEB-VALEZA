@@ -4,7 +4,7 @@ import {
   keyframes,
 } from '@chakra-ui/react';
 import { Mensagem } from '../../context/AssistenteContext';
-import { Grafico } from './Grafico';
+import { Grafico } from './GraficoInterativo';
 import { Markdown } from './Markdown';
 
 // Peças comuns ao balão flutuante e à página /assistente.
