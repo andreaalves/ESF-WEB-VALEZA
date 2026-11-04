@@ -22,7 +22,7 @@ const ASSISTENTE_URL =
   process.env.REACT_APP_ASSISTENTE_URL ||
   (process.env.NODE_ENV === 'development'
     ? 'http://127.0.0.1:8010/api/assistente/chat'
-    : 'https://valeza-mcp-valeza-agt-mcp.rxlirp.easypanel.host/api/assistente/chat');
+    : 'https://esf-agente-vlz-production.up.railway.app/api/assistente/chat');
 
 // O painel de inteligência comercial mora no mesmo MCP, ao lado do chat. Sem o
 // MCP direto (o caminho antigo, pelo ESF-API), não há painel.
