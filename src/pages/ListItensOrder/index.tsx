@@ -9,6 +9,7 @@ import {
   Icon,
   VStack,
   HStack,
+  SimpleGrid,
   useToast,
   useDisclosure,
 } from '@chakra-ui/react';
@@ -22,7 +23,6 @@ import { getItensOrderColumn } from '../../utils/getOrderItensColumn';
 import { useHistory } from 'react-router-dom';
 import { SiderbarResponsive } from '../../components/SiderbarResponsive';
 import { Wapper } from '../../components/Wapper';
-import { currencyMask } from '../../helpers/currencyMask';
 import {
   AiOutlineArrowLeft,
   AiOutlineCheck,
@@ -34,6 +34,89 @@ import { aprovarPedido, nomeDoAprovador } from '../../service/aprovacaoPedido';
 import { ExcludeDialogOrder } from '../../components/ExcludeDialogOrder';
 import { parseErroIntegracao } from '../../utils/parseErroIntegracao';
 import { podeAprovarPedido } from '../../utils/podeAprovarPedido';
+
+const formatarMoeda = (valor: any) =>
+  Number(valor || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+
+// 10 dígitos = fixo (61)3552-3048; 11 dígitos = celular (61)99999-9999.
+const formatarTelefone = (valor?: string) => {
+  const d = String(valor || '').replace(/\D/g, '');
+  if (d.length === 10) return d.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  if (d.length === 11) return d.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  return valor;
+};
+
+function Secao({ titulo, children }: { titulo: string; children: any }) {
+  return (
+    <Box
+      mb={6}
+      p={5}
+      border="1px solid"
+      borderColor="gray.700"
+      borderRadius="md"
+    >
+      <Text
+        mb={4}
+        fontSize="xs"
+        fontWeight="bold"
+        letterSpacing="wider"
+        textTransform="uppercase"
+        color="orange.400"
+      >
+        {titulo}
+      </Text>
+      <SimpleGrid
+        columns={{ base: 1, md: 2, lg: 4 }}
+        spacingX={8}
+        spacingY={5}
+      >
+        {children}
+      </SimpleGrid>
+    </Box>
+  );
+}
+
+function Campo({
+  label,
+  children,
+  largo,
+  destaque,
+}: {
+  label: string;
+  children: any;
+  largo?: boolean;
+  destaque?: boolean;
+}) {
+  const vazio =
+    children === null ||
+    children === undefined ||
+    children === '' ||
+    (Array.isArray(children) && children.every((c) => !c));
+  return (
+    <Box gridColumn={largo ? { base: 'auto', md: 'span 2' } : undefined}>
+      <Text
+        fontSize="xs"
+        textTransform="uppercase"
+        letterSpacing="wide"
+        color="gray.400"
+        mb={1}
+      >
+        {label}
+      </Text>
+      <Text
+        fontWeight="bold"
+        fontSize={destaque ? 'lg' : 'md'}
+        color={destaque ? 'green.400' : undefined}
+        wordBreak="break-word"
+      >
+        {vazio ? '-' : children}
+      </Text>
+    </Box>
+  );
+}
 
 export default function ListItensOrder() {
   type IParams = {
@@ -284,113 +367,57 @@ export default function ListItensOrder() {
                   ) : (
                     <Flex flexDirection="column" width="100%">
                       {cliente && (
-                        <>
-                          <Flex
-                            justifyContent="space-between"
-                            flexWrap="wrap"
-                            gap={4}
-                          >
-                            <VStack alignItems="start">
-                              <Text>CLIENTE:</Text>
-                              <Text fontWeight="bold">
-                                {[cliente.codigo, cliente.loja]
-                                  .filter(Boolean)
-                                  .join('/')}
-                                {cliente.razao_social
-                                  ? ` - ${cliente.razao_social}`
-                                  : ''}
-                              </Text>
-                            </VStack>
-                            {cliente.fantasia && (
-                              <VStack alignItems="start">
-                                <Text>FANTASIA:</Text>
-                                <Text fontWeight="bold">
-                                  {cliente.fantasia}
-                                </Text>
-                              </VStack>
-                            )}
-                            <VStack alignItems="start">
-                              <Text>CNPJ:</Text>
-                              <Text fontWeight="bold">{cliente.cnpj}</Text>
-                            </VStack>
-                            {cliente.endereco && (
-                              <VStack alignItems="start">
-                                <Text>CIDADE:</Text>
-                                <Text fontWeight="bold">
-                                  {cliente.endereco.cidade} /{' '}
-                                  {cliente.endereco.uf}
-                                </Text>
-                              </VStack>
-                            )}
-                            {cliente.telefone && (
-                              <VStack alignItems="start">
-                                <Text>TELEFONE:</Text>
-                                <Text fontWeight="bold">
-                                  {cliente.telefone}
-                                </Text>
-                              </VStack>
-                            )}
-                            {cliente.colaboradores?.nome && (
-                              <VStack alignItems="start">
-                                <Text>VENDEDOR:</Text>
-                                <Text fontWeight="bold">
-                                  {cliente.colaboradores.nome}
-                                </Text>
-                              </VStack>
-                            )}
-                          </Flex>
-                          <Divider my="6" borderColor="gray.700" />
-                        </>
+                        <Secao titulo="Dados do cliente">
+                          <Campo label="Cliente" largo>
+                            {[cliente.codigo, cliente.loja]
+                              .filter(Boolean)
+                              .join('/')}
+                            {cliente.razao_social
+                              ? ` - ${cliente.razao_social}`
+                              : ''}
+                          </Campo>
+                          <Campo label="Fantasia">{cliente.fantasia}</Campo>
+                          <Campo label="CNPJ">{cliente.cnpj}</Campo>
+                          <Campo label="Cidade / UF">
+                            {cliente.endereco?.cidade
+                              ? `${cliente.endereco.cidade} / ${cliente.endereco.uf}`
+                              : null}
+                          </Campo>
+                          <Campo label="Telefone">
+                            {formatarTelefone(cliente.telefone)}
+                          </Campo>
+                          <Campo label="Vendedor">
+                            {cliente.colaboradores?.nome}
+                          </Campo>
+                        </Secao>
                       )}
-                      <Flex justifyContent="space-between">
-                        <VStack alignItems="start">
-                          <Text>FORMA DE PAGAMENTO:</Text>
-                          <Text fontWeight="bold">{dados.forma_pagamento}</Text>
-                        </VStack>
-                        <VStack alignItems="start">
-                          <Text>CONDIÇÃO DE PAGAMENTO:</Text>
-                          <Text fontWeight="bold">
-                            {dados.condicao_pagamento}
-                          </Text>
-                        </VStack>
-                        <VStack alignItems="start">
-                          <Text>MARGEM:</Text>
+                      <Secao titulo="Dados do pedido">
+                        <Campo label="Forma de pagamento">
+                          {dados.forma_pagamento}
+                        </Campo>
+                        <Campo label="Condição de pagamento">
+                          {dados.condicao_pagamento}
+                        </Campo>
+                        <Campo label="Margem">
                           {/* Sem currencyMask: ela remove o sinal e margem
                               negativa aparecia como positiva. */}
-                          <Text fontWeight="bold">
-                            {(Number(dados.margem_pedido) * 100).toLocaleString(
-                              'pt-BR',
-                              {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              }
-                            )}{' '}
-                            %
-                          </Text>
-                        </VStack>
-                        {aprovadoPor && (
-                          <VStack alignItems="start">
-                            <Text>APROVADO POR:</Text>
-                            <Text fontWeight="bold">{aprovadoPor}</Text>
-                          </VStack>
-                        )}
-                        <VStack alignItems="start">
-                          <Text>VALOR DO FRETE:</Text>
-                          <Text fontWeight="bold">
-                            R${' '}
-                            {currencyMask(
-                              Number(dados.valor_frete).toFixed(2).toString()
-                            )}
-                          </Text>
-                        </VStack>
-                        <VStack alignItems="start">
-                          <Text>VALOR DO TOTAL:</Text>
-                          <Text fontWeight="bold">
-                            R$ {currencyMask(total.toFixed(2))}
-                          </Text>
-                        </VStack>
-                      </Flex>
-                      <Divider my="6" borderColor="gray.700" />
+                          {(Number(dados.margem_pedido) * 100).toLocaleString(
+                            'pt-BR',
+                            {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }
+                          )}{' '}
+                          %
+                        </Campo>
+                        <Campo label="Aprovado por">{aprovadoPor}</Campo>
+                        <Campo label="Valor do frete">
+                          {formatarMoeda(dados.valor_frete)}
+                        </Campo>
+                        <Campo label="Valor total" destaque>
+                          {formatarMoeda(total)}
+                        </Campo>
+                      </Secao>
                       <ReactTableComponent
                         columns={columnItensOrder}
                         data={orders}

@@ -1,6 +1,18 @@
 import * as FiIcons from 'react-icons/fi';
 import { IconButton, Flex, HStack, Link as ChakraLink } from '@chakra-ui/react';
 
+const moeda = (valor: any) =>
+  Number(valor || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+
+const pct = (valor: number) =>
+  `${valor.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} %`;
+
 export function getItensOrderColumn(
   deleteFunction: (e: any, id: string) => void,
   editPath: string
@@ -20,7 +32,7 @@ export function getItensOrderColumn(
       // Pedido antigo pode não ter o preço de tabela gravado no item.
       Cell: ({ row }: any) =>
         Number(row.original.preco_tabela) > 0 ? (
-          <span>R$ {Number(row.original.preco_tabela).toFixed(2)}</span>
+          <span>{moeda(row.original.preco_tabela)}</span>
         ) : (
           <span>-</span>
         ),
@@ -29,7 +41,7 @@ export function getItensOrderColumn(
       Header: 'Pr Unitário',
       accessor: 'precoLiquido',
       Cell: ({ row }: any) => (
-        <span>R$ {Number(row.original.preco_liquido).toFixed(2)}</span>
+        <span>{moeda(row.original.preco_liquido)}</span>
       ),
     },
     {
@@ -44,9 +56,9 @@ export function getItensOrderColumn(
         // Vendido acima da tabela: mostra como acréscimo em vez de
         // desconto negativo.
         return desconto < 0 ? (
-          <span>+{Math.abs(desconto).toFixed(2)} % (acréscimo)</span>
+          <span>+{pct(Math.abs(desconto))} (acréscimo)</span>
         ) : (
-          <span>{desconto.toFixed(2)} %</span>
+          <span>{pct(desconto)}</span>
         );
       },
       // Valor calculado na tela, não existe no item — não dá para filtrar.
@@ -57,7 +69,7 @@ export function getItensOrderColumn(
       Header: 'Margem',
       accessor: 'margem',
       Cell: ({ row }: any) => (
-        <span>{Number(row.original.margem * 100).toFixed(2)} %</span>
+        <span>{pct(Number(row.original.margem) * 100)}</span>
       ),
     },
     {
@@ -69,7 +81,7 @@ export function getItensOrderColumn(
       accessor: 'total',
       Cell: ({ row }: any) => (
         <span>
-          R$ {(row.original.preco_liquido * row.original.quantidade).toFixed(2)}
+          {moeda(row.original.preco_liquido * row.original.quantidade)}
         </span>
       ),
     },
