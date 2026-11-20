@@ -7,6 +7,10 @@ export function getItensOrderColumn(
 ) {
   const columns = [
     {
+      Header: 'Código',
+      accessor: 'produtos.codigo',
+    },
+    {
       Header: 'Nome',
       accessor: 'produtos.nome',
     },

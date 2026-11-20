@@ -51,6 +51,7 @@ export default function ListItensOrder() {
 
   const [orders, setOrders] = useState<any[]>([]);
   const [dados, setDados] = useState<any>();
+  const [cliente, setCliente] = useState<any>();
   const [showIndex, setShowIndex] = useState(-1);
   const [isLoading, setIsLoading] = useState(true);
   const [idToDelete, setIdToDelete] = useState('');
@@ -100,6 +101,15 @@ export default function ListItensOrder() {
         setIsLoading(false);
       });
   }, [orders.length, params.id]);
+
+  // O pedido só traz o cliente_id; os dados do cabeçalho vêm do cadastro.
+  useEffect(() => {
+    if (!dados?.cliente_id) return;
+    api
+      .get(`/api-essencial/v1/clientes/${dados.cliente_id}`)
+      .then((response) => setCliente(response.data))
+      .catch(() => {});
+  }, [dados?.cliente_id]);
 
   const columnItensOrder = getItensOrderColumn(
     () => {},
@@ -273,6 +283,65 @@ export default function ListItensOrder() {
                     </Flex>
                   ) : (
                     <Flex flexDirection="column" width="100%">
+                      {cliente && (
+                        <>
+                          <Flex
+                            justifyContent="space-between"
+                            flexWrap="wrap"
+                            gap={4}
+                          >
+                            <VStack alignItems="start">
+                              <Text>CLIENTE:</Text>
+                              <Text fontWeight="bold">
+                                {[cliente.codigo, cliente.loja]
+                                  .filter(Boolean)
+                                  .join('/')}
+                                {cliente.razao_social
+                                  ? ` - ${cliente.razao_social}`
+                                  : ''}
+                              </Text>
+                            </VStack>
+                            {cliente.fantasia && (
+                              <VStack alignItems="start">
+                                <Text>FANTASIA:</Text>
+                                <Text fontWeight="bold">
+                                  {cliente.fantasia}
+                                </Text>
+                              </VStack>
+                            )}
+                            <VStack alignItems="start">
+                              <Text>CNPJ:</Text>
+                              <Text fontWeight="bold">{cliente.cnpj}</Text>
+                            </VStack>
+                            {cliente.endereco && (
+                              <VStack alignItems="start">
+                                <Text>CIDADE:</Text>
+                                <Text fontWeight="bold">
+                                  {cliente.endereco.cidade} /{' '}
+                                  {cliente.endereco.uf}
+                                </Text>
+                              </VStack>
+                            )}
+                            {cliente.telefone && (
+                              <VStack alignItems="start">
+                                <Text>TELEFONE:</Text>
+                                <Text fontWeight="bold">
+                                  {cliente.telefone}
+                                </Text>
+                              </VStack>
+                            )}
+                            {cliente.colaboradores?.nome && (
+                              <VStack alignItems="start">
+                                <Text>VENDEDOR:</Text>
+                                <Text fontWeight="bold">
+                                  {cliente.colaboradores.nome}
+                                </Text>
+                              </VStack>
+                            )}
+                          </Flex>
+                          <Divider my="6" borderColor="gray.700" />
+                        </>
+                      )}
                       <Flex justifyContent="space-between">
                         <VStack alignItems="start">
                           <Text>FORMA DE PAGAMENTO:</Text>
@@ -326,8 +395,7 @@ export default function ListItensOrder() {
                         columns={columnItensOrder}
                         data={orders}
                         isPagenable
-                      />{' '}
-                      *
+                      />
                     </Flex>
                   )}
                 </>
